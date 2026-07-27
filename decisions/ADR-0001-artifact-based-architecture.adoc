@@ -1,0 +1,450 @@
+= ADR-0001: Artifact-Based Knowledge Architecture
+Jin-Aladdin
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+:icons: font
+
+[cols="1,3",options="header"]
+|===
+| Field
+| Value
+
+| Status
+| Accepted
+
+| Decision date
+| 2026-07-27
+
+| Decision owners
+| Aladin Spec Maintainers
+
+| Specification phase
+| Pre-Alpha
+
+| Related components
+| Knowledge Packs, Artifact Builder, Registry, Gateway, Global Metadata Index
+|===
+
+== Context
+
+The Aladin ecosystem is intended to support a large number of independent knowledge domains.
+
+Examples include:
+
+* Linux
+* Bash
+* Docker
+* PostgreSQL
+* software architecture
+* artificial intelligence
+* networking
+* security
+* scientific knowledge
+
+An early architecture concept considered allowing every Knowledge Pack repository to expose its own API server and Docker container.
+
+Under that model, a repository such as "aladin-kb-docker" would run one service, while "aladin-kb-linux", "aladin-kb-bash" and every additional knowledge repository would run separate services.
+
+This approach creates serious scaling and operational problems.
+
+A system containing hundreds of Knowledge Packs could require hundreds of:
+
+* running containers
+* application processes
+* network routes
+* health checks
+* deployment configurations
+* security boundaries
+* update procedures
+* monitoring targets
+* memory allocations
+* runtime dependencies
+
+Most Knowledge Packs primarily contain structured and relatively static knowledge.
+
+They do not require an independent permanently running server.
+
+== Problem
+
+The architecture must allow hundreds or thousands of Knowledge Packs without requiring one active microservice for every knowledge domain.
+
+The system must also support:
+
+* independent package development
+* reproducible releases
+* centralized retrieval
+* efficient indexing
+* low runtime overhead
+* package versioning
+* package rollback
+* package verification
+* horizontal scaling
+* multiple storage backends
+* offline and local operation
+
+== Decision
+
+Aladin Knowledge Packs will be distributed as versioned data artifacts.
+
+A Knowledge Pack repository is a source and build project.
+
+It is not required to operate as a permanent API service.
+
+Each repository may contain:
+
+* structured claims
+* entities
+* relationships
+* source records
+* provenance information
+* translations
+* licensing metadata
+* tests
+* evaluations
+* schemas
+* build configuration
+
+A validation and build process converts the repository content into one or more immutable Knowledge Pack artifacts.
+
+Possible artifact formats include:
+
+* SQLite
+* JSON
+* JSON Lines
+* Parquet
+* graph data
+* compressed archives
+* search indexes
+* optional embeddings
+
+The exact mandatory artifact formats will be defined by later specification documents.
+
+== Architecture
+
+[source,text]
+
+Knowledge Repository
+│
+│ Validate
+▼
+Validated Source Data
+│
+│ Build
+▼
+Versioned Knowledge Artifact
+│
+│ Sign and publish
+▼
+Artifact Storage
+│
+│ Register
+▼
+Knowledge Pack Registry
+│
+│ Discover and load
+▼
+Gateway and Global Metadata Index
+│
+│ Retrieve and re-rank
+▼
+AI Runtime
+
+== Runtime Model
+
+A central gateway or compatible runtime may load many Knowledge Pack artifacts.
+
+The gateway provides the active API layer.
+
+[source,text]
+
+             ┌── aladin-kb-linux artifact
+             │
+             ├── aladin-kb-bash artifact
+             │
+
+Aladin Gateway ──┼── aladin-kb-docker artifact
+│
+├── aladin-kb-postgresql artifact
+│
+└── additional Knowledge Packs
+
+This avoids requiring a separate active server for every pack.
+
+Multiple gateway instances may be deployed for:
+
+* horizontal scaling
+* regional distribution
+* high availability
+* local environments
+* private installations
+* specialized domain deployments
+
+== Artifact Requirements
+
+Every released Knowledge Pack artifact should eventually include or reference:
+
+* package identifier
+* package version
+* specification version
+* creation timestamp
+* source commit identifier
+* content checksum
+* artifact checksum
+* build provenance
+* licensing information
+* compatibility metadata
+* validation result
+* source metadata
+* maintainer identity
+
+The specification may later require cryptographic signing for official or verified packages.
+
+== Immutability
+
+Released artifacts are immutable.
+
+A published artifact must not be silently modified.
+
+Any content change requires a new package version.
+
+For example:
+
+[source,text]
+
+aladin-kb-docker 1.2.0
+aladin-kb-docker 1.2.1
+aladin-kb-docker 1.3.0
+
+Historical versions may remain available for:
+
+* reproducibility
+* auditability
+* rollback
+* compatibility testing
+* incident investigation
+
+== Activation Process
+
+A runtime should not immediately replace an active Knowledge Pack when a newer version becomes available.
+
+A safe activation process is:
+
+. Discover the new package version.
+. Download the artifact.
+. Verify checksums and signatures.
+. Validate the manifest.
+. Verify specification compatibility.
+. Inspect package status and recall information.
+. Build or update the search index.
+. Run health and retrieval tests.
+. Activate the new version atomically.
+. Retain the previous version for rollback.
+
+[source,text]
+
+Active: 1.4.1
+│
+▼
+Download candidate 1.4.2
+│
+▼
+Verify and validate
+│
+▼
+Build index
+│
+▼
+Run checks
+│
+▼
+Atomic activation
+│
+▼
+Active: 1.4.2
+
+If any required check fails, version "1.4.1" remains active.
+
+== API Responsibility
+
+Knowledge Pack repositories do not define independent production API deployments.
+
+The API responsibility belongs to:
+
+* the Aladin Gateway
+* compatible third-party runtimes
+* local knowledge runtimes
+* enterprise implementations
+* development and validation tools
+
+A repository may include a temporary development server or preview tool.
+
+Such a tool is optional and is not part of the required production architecture.
+
+== Embeddings
+
+Embeddings are derived artifacts.
+
+They must not replace the original structured knowledge.
+
+A Knowledge Pack that distributes embeddings should also preserve sufficient source data to regenerate them.
+
+Embedding metadata should include:
+
+* model identifier
+* model version
+* vector dimensions
+* normalization method
+* chunking strategy
+* generation timestamp
+* source content hash
+* language coverage
+
+A runtime may ignore included embeddings and generate its own.
+
+== Storage Independence
+
+The specification will not require one mandatory artifact storage provider.
+
+Compatible implementations may use:
+
+* GitHub Releases
+* S3-compatible object storage
+* local file systems
+* private registries
+* distributed storage
+* enterprise artifact platforms
+
+The Knowledge Pack format must remain portable between storage systems.
+
+== Security Consequences
+
+The artifact-based architecture reduces the attack surface because Knowledge Packs are treated primarily as declarative data.
+
+A compatible runtime must not automatically execute scripts contained in a Knowledge Pack.
+
+Artifacts must be treated as untrusted until they pass:
+
+* integrity verification
+* schema validation
+* compatibility validation
+* size and resource checks
+* security scanning
+* policy checks
+
+== Positive Consequences
+
+This decision provides:
+
+* significantly lower runtime overhead
+* simpler deployment
+* centralized API management
+* easier horizontal scaling
+* reproducible releases
+* simpler package rollback
+* consistent security controls
+* compatibility with local installations
+* easier caching
+* independent package development
+* support for hundreds or thousands of Knowledge Packs
+
+== Negative Consequences
+
+This decision also introduces costs.
+
+The ecosystem requires:
+
+* an artifact build process
+* artifact storage
+* a package registry
+* gateway loading logic
+* index synchronization
+* compatibility adapters
+* cache invalidation
+* package lifecycle management
+
+Knowledge Pack maintainers cannot freely deploy arbitrary custom server behavior as part of the core standard.
+
+Specialized behavior must be implemented in the runtime, through a separately defined extension mechanism or outside the Knowledge Pack format.
+
+== Alternatives Considered
+
+=== One API Server per Knowledge Pack
+
+Rejected because it creates excessive operational overhead and poor scaling characteristics.
+
+=== One Large Monolithic Knowledge Repository
+
+Rejected because it would:
+
+* reduce independent ownership
+* create large merge conflicts
+* complicate licensing
+* make releases slower
+* prevent domain-specific maintenance
+* create one central failure point
+
+=== Direct Runtime Access to Git Repositories
+
+Rejected as the primary production mechanism because repositories may contain:
+
+* incomplete work
+* unvalidated changes
+* development files
+* unsupported formats
+* unsafe scripts
+* unstable branches
+
+Production systems should consume validated release artifacts rather than arbitrary repository states.
+
+=== Mandatory Central Cloud Service
+
+Rejected because the public specification must remain usable for:
+
+* local installations
+* self-hosted environments
+* offline systems
+* independent implementations
+
+== Compatibility
+
+This decision applies to the first Aladin Knowledge Pack specification series.
+
+Future specification versions may introduce optional services or extensions, but the core portable Knowledge Pack must remain usable as a data artifact.
+
+A future change that requires every Knowledge Pack to operate its own permanent service would conflict with this decision and require a new architecture decision record.
+
+== Implementation Guidance
+
+The first reference implementation should prove this decision with at least two Knowledge Packs.
+
+For example:
+
+[source,text]
+
+aladin-kb-linux
+aladin-kb-docker
+
+The test implementation should demonstrate:
+
+* independent repositories
+* independent package versions
+* artifact generation
+* centralized loading
+* unified search
+* multi-pack retrieval
+* package replacement without gateway restart
+* rollback to a previous version
+
+== Final Decision
+
+[quote]
+
+---
+
+An Aladin Knowledge Pack is a versioned data product, not a permanently running microservice.
+
+---
+
+This principle is accepted as a foundational architectural rule of the Aladin ecosystem.
