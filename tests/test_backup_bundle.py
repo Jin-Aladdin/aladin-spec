@@ -157,10 +157,47 @@ def test_rebuilding_overwrites_a_previous_bundle(tmp_path, source_repository):
     assert path.is_file()
 
 
+def test_a_shallow_checkout_is_refused_with_a_clear_reason(tmp_path):
+    """A shallow clone produces an archive that only fails on restore.
+
+    CI checks out shallow by default, so this is the realistic way to end up
+    with a backup that looks fine and is not.
+    """
+    origin = tmp_path / "origin"
+    origin.mkdir()
+    git("init", "--quiet", "--initial-branch", "main", cwd=origin)
+    git("config", "user.email", "test@example.org", cwd=origin)
+    git("config", "user.name", "Test", cwd=origin)
+    for index in range(3):
+        (origin / f"file{index}.txt").write_text(f"{index}\n", encoding="utf-8")
+        git("add", ".", cwd=origin)
+        git("commit", "--quiet", "-m", f"commit {index}", cwd=origin)
+
+    shallow = tmp_path / "shallow"
+    subprocess.run(
+        ["git", "clone", "--quiet", "--depth", "1", f"file://{origin.as_posix()}", str(shallow)],
+        check=True,
+        capture_output=True,
+    )
+    assert backup_bundle.is_shallow(shallow) is True
+
+    with pytest.raises(backup_bundle.BackupError, match="shallow checkout"):
+        backup_bundle.create_bundle(tmp_path / "shallow.bundle", repository=shallow)
+
+
+def test_a_full_checkout_is_not_reported_as_shallow(source_repository):
+    assert backup_bundle.is_shallow(source_repository) is False
+
+
 def test_this_repository_can_be_bundled(tmp_path):
     """The real repository, not a fixture: the backup must work here too."""
     if not (REPOSITORY_ROOT / ".git").exists():
         pytest.skip("not running from a git checkout")
+    if backup_bundle.is_shallow(REPOSITORY_ROOT):
+        pytest.skip(
+            "shallow checkout: the backup workflow fetches full history, "
+            "the validation workflow does not need to"
+        )
     result = backup_bundle.create_bundle(tmp_path / "self.bundle", repository=REPOSITORY_ROOT)
     assert result.commit_count > 0
     assert result.ref_count > 0

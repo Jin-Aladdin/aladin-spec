@@ -92,10 +92,26 @@ def _refs(repository: Path) -> dict[str, str]:
     return refs
 
 
+def is_shallow(repository: Path = REPOSITORY_ROOT) -> bool:
+    """Return whether the checkout is missing history."""
+    return _git("rev-parse", "--is-shallow-repository", cwd=repository).strip() == "true"
+
+
 def create_bundle(out_path: Path, repository: Path = REPOSITORY_ROOT) -> BundleResult:
     """Bundle the whole repository, then prove the bundle is usable."""
     if not (repository / ".git").exists():
         raise BackupError(f"{repository} is not a git repository")
+
+    # A shallow checkout has no ancestors to bundle, so the archive would look
+    # fine and fail on restore. Caught here rather than several steps later,
+    # where git reports it as "remote did not send all necessary objects" and
+    # the cause is no longer obvious. CI checkouts are shallow by default,
+    # which is exactly where this mistake happens.
+    if is_shallow(repository):
+        raise BackupError(
+            "this is a shallow checkout, which cannot produce a restorable backup; "
+            "fetch the full history first, for example with fetch-depth: 0"
+        )
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     if out_path.exists():
