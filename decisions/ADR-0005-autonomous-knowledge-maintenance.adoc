@@ -1,0 +1,675 @@
+= ADR-0005: Autonomous Knowledge Maintenance and Succession
+Jin-Aladdin
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+:icons: font
+
+[cols="1,3",options="header"]
+|===
+| Field
+| Value
+
+| Status
+| Accepted
+
+| Decision date
+| 2026-07-27
+
+| Decision owners
+| Aladin Spec Maintainers
+
+| Specification phase
+| Pre-Alpha
+
+| Related components
+| Knowledge Packs, Update Engine, Source Adapters, Validator, Artifact Builder, Registry, Sentinel, GitHub Actions, Governance
+|===
+
+== Context
+
+ADR-0001 defines a Knowledge Pack as a versioned data artifact. ADR-0002
+defines the canonical model that artifact is converted into. ADR-0003 forbids
+automatic execution of pack content. ADR-0004 separates the public standard
+from proprietary intelligence.
+
+None of those decisions answer a different question: what happens to a
+Knowledge Pack when nobody updates it.
+
+Knowledge decays. Documentation is rewritten, software releases new versions,
+standards are superseded, legal texts are amended. A pack that was accurate at
+build time silently becomes wrong. A repository whose only maintainer stops
+working on it becomes a stale artifact that still claims authority.
+
+The project intends Aladin to work as a durable knowledge legacy. Knowledge
+Packs should keep checking their declared sources, keep their provenance
+current and keep publishing verified versions after the original creator is no
+longer actively present.
+
+At the same time, automation is a security boundary. A system that
+automatically fetches remote content and publishes it as verified knowledge is
+a knowledge-poisoning vector, a licensing risk and a supply-chain risk.
+
+== Problem
+
+The specification needs a binding architecture that makes long-term autonomous
+maintenance possible without turning automation into unreviewed publication.
+
+Without such a rule:
+
+* every repository would invent its own update mechanism
+* fetched content could be published without validation
+* a failed update could destroy a working knowledge base
+* automated decisions would not be auditable
+* automation would depend on one person's access token
+* disabled scheduled workflows would silently stop maintenance
+* a compromised updater could rewrite published knowledge
+* unclear licensing could be laundered through an automated pipeline
+
+== Decision
+
+Aladin defines *autonomous knowledge maintenance* as a first-class part of the
+specification.
+
+[quote]
+____
+Aladin Knowledge Packs must be capable of maintaining, validating, versioning
+and publishing their knowledge through auditable automation without depending
+on the continuous presence of their original creator.
+____
+
+Autonomy never means unreviewed publication. When the pipeline cannot prove
+that a candidate update is valid, the last provably valid knowledge version
+stays active.
+
+== Binding Rules
+
+The following rules are normative for the Aladin ecosystem.
+
+. Every Knowledge Pack repository declares a machine-readable update policy.
+  A repository without an update policy has no automated maintenance.
+. Updates run primarily through GitHub Actions. The architecture must remain
+  portable to another scheduler, but GitHub Actions is the reference platform.
+. Sources are processed only through declared and explicitly allowed source
+  adapters. Arbitrary fetching or arbitrary parsing is not permitted.
+. A successful retrieval is never sufficient grounds to accept an update. A
+  fetch produces a candidate, not knowledge.
+. Every change must be validated, tested and recorded in a traceable audit
+  record before it can be merged.
+. Failing candidates are discarded or quarantined. They are never merged with
+  a warning.
+. When an update fails, the last valid pack version remains active. A failed
+  update must never delete or degrade the existing knowledge base.
+. Knowledge Packs continue to execute no runtime code at the consumer. ADR-0003
+  is unchanged by this decision.
+. Update code belongs to the controlled build and maintenance layer of the
+  source repository. It is never part of the published artifact and is never
+  supplied by pack content.
+. Automatic update and automatic publication are separate phases with separate
+  gates. Passing the update gate does not authorize a release.
+. Every publication produces an immutable, versioned artifact with checksums
+  and build provenance.
+. Every automated decision must be auditable: what was fetched, when, from
+  where, with which hash, by which adapter version, under which policy, with
+  which outcome.
+. The system must be able to operate without any personal access token
+  belonging to the founder.
+. Organization-bound machine identities are preferred over personal tokens.
+. Failure, inactivity and ownership transfer are explicit architectural
+  concerns, not operational afterthoughts.
+
+== Scope
+
+This ADR distinguishes two repository roles. Applying knowledge-pack automation
+to the specification repository would be a category error.
+
+[cols="1,2,2",options="header"]
+|===
+| Concern
+| `aladin-spec`
+| Knowledge Pack repositories
+
+| Automatic source synchronization
+| Not permitted
+| Permitted under an update policy
+
+| Schema validation
+| Required
+| Required
+
+| Cross-reference validation
+| Required
+| Required
+
+| Documentation checks
+| Required
+| Required
+
+| Compatibility tests
+| Required
+| Required
+
+| Security gates
+| Required
+| Required
+
+| Release creation
+| Required
+| Required
+
+| Artifact attestation
+| Required
+| Required
+
+| Automation health monitoring
+| Required
+| Required
+|===
+
+The specification repository defines the rules. It does not update itself from
+external sources.
+
+== Automation Levels
+
+Every repository declares an automation level per source. Levels are cumulative:
+a higher level requires every gate of the levels below it.
+
+[cols="1,1,3",options="header"]
+|===
+| Level
+| Name
+| Behaviour
+
+| 1
+| Detect
+| Detect source changes and report. No repository content is modified.
+
+| 2
+| Propose
+| Produce a validated candidate and open a pull request. A human or a policy
+  gate decides.
+
+| 3
+| Safe auto-merge
+| Merge strictly deterministic, low-risk changes automatically when every gate
+  is green.
+
+| 4
+| Automated release
+| Publish a new versioned artifact after a successful merge and a successful
+  evaluation suite.
+
+| 5
+| Registry propagation
+| Forward the new artifact and trust metadata to a registry.
+|===
+
+A repository may not declare a level it cannot enforce. If the required gates
+are unavailable, the effective level drops to the highest level whose gates
+exist.
+
+== Risk Classes
+
+Automated authority depends on the risk class of the change, not on the
+confidence of the process that produced it.
+
+[cols="1,2,2",options="header"]
+|===
+| Class
+| Examples
+| Maximum automated action
+
+| Low
+| New stable software version, updated documentation link, refreshed content
+  hash, new unambiguously structured API data, unchanged statement with a new
+  verification time.
+| Auto-merge and release when every gate is green.
+
+| Medium
+| New technical recommendation, changed API meaning, new deprecation,
+  contradicting documentation passages.
+| Pull request only. No automatic merge.
+
+| High
+| Medicine, law, finance, security, personal data, politically sensitive
+  content, unclear licensing, contradictions between primary sources.
+| No automated publication. Quarantine the candidate and document the
+  uncertainty.
+|===
+
+A high-risk change must never be published on the strength of a language-model
+judgement alone. When no human maintainer is available, the existing valid
+version stays active, the candidate is quarantined and the unresolved
+uncertainty is recorded.
+
+Autonomy must never be used to hide uncertainty.
+
+== Update Pipeline
+
+[source,text]
+----
+Schedule / Manual Dispatch / Repository Dispatch
+        │
+        ▼
+Load update policy
+        │
+        ▼
+Validate source allowlist
+        │
+        ▼
+Fetch source in a restricted environment
+        │
+        ▼
+Store retrieval metadata and content hash
+        │
+        ▼
+Detect structural or semantic change
+        │
+        ▼
+Normalize candidate data
+        │
+        ▼
+Generate sources, evidence and claims
+        │
+        ▼
+Validate all schemas
+        │
+        ▼
+Validate cross references
+        │
+        ▼
+Run security and quality gates
+        │
+   ┌────┴─────┐
+   │          │
+ valid     invalid
+   │          │
+   ▼          ▼
+Open update   Quarantine candidate
+pull request  Keep last valid pack
+   │
+   ▼
+Run evaluation suite
+   │
+   ▼
+Approve according to policy
+   │
+   ▼
+Merge and compute version
+   │
+   ▼
+Build immutable artifact
+   │
+   ▼
+Checksums and attestation
+   │
+   ▼
+Publish release
+   │
+   ▼
+Update registry metadata
+----
+
+== Fail-Closed Principle
+
+The pipeline is fail-closed. The following inference is prohibited:
+
+[source,text]
+----
+Source changed
+    =
+New information is correct
+    =
+Publish automatically
+----
+
+The permitted inference is:
+
+[source,text]
+----
+Source changed
+    =
+A candidate update exists
+    =
+Validation and evaluation are required
+----
+
+On any failure:
+
+* the last valid version stays active
+* no damaged artifact is published
+* the candidate is isolated
+* an audit report is produced
+* a GitHub issue or workflow summary records the failure
+* the retry policy decides when the source is checked again
+
+A failure must never lead to deletion of the existing knowledge base.
+
+== Source Adapter Boundary
+
+Sources are never processed by scripts supplied through pack content. Each
+source declares one adapter from a controlled set, for example:
+
+* `static-file`
+* `git-repository`
+* `github-release`
+* `json-api`
+* `feed` for RSS and Atom
+* `html-documentation`
+* `pdf-document`
+* `structured-dataset`
+* `standards-document`
+
+Every adapter must:
+
+* be explicitly allowed by the update policy
+* accept a fixed, declared input shape
+* restrict network targets to an allowlist
+* apply timeouts
+* apply download size limits
+* limit redirects
+* verify the content type
+* treat retrieved content as untrusted data
+* execute no command derived from retrieved data
+* record retrieval time and content hash
+* preserve the original source reference
+* report failures in a traceable form
+
+The following are prohibited without exception:
+
+* dynamic Python imports from a Knowledge Pack
+* shell commands derived from `sources.yml` or any policy file
+* executable commands derived from downloaded documents
+* automatic dependency installation driven by pack content
+
+== Use of Language Models
+
+Language models may assist maintenance: classification, summarization, proposing
+structured claims, detecting possible contradictions, translation and semantic
+comparison.
+
+Language-model output is an untrusted candidate. A model may not, on its own:
+
+* assign a truth status
+* raise a confidence value
+* invent a source
+* invent evidence
+* grant a license clearance
+* approve a security-relevant change
+* overwrite an existing primary source
+* publish an unreviewed claim
+
+Every model-assisted transformation must record:
+
+* model identity
+* model version
+* prompt or transformation version
+* creation time
+* input hashes
+* output hash
+* review status
+
+The system must stay operable without any particular language model. No
+required part of the pipeline may depend on one vendor or one model.
+
+== Authentication and Machine Identity
+
+Preferred order:
+
+. The repository-scoped `GITHUB_TOKEN`, when its scope is sufficient.
+. An organization-owned GitHub App for cross-repository actions.
+. OpenID Connect for supported external infrastructure.
+. No personal access token as a permanent foundation.
+
+A personal access token belonging to the founder is not an acceptable legacy
+architecture. It expires, it is bound to one account and it cannot be handed
+over cleanly.
+
+Every workflow file declares explicit minimal permissions, for example:
+
+[source,yaml]
+----
+permissions:
+  contents: read
+----
+
+Write permissions are granted only inside the jobs that require them.
+Cross-repository releases, registry updates and workflow chains run through a
+GitHub App.
+
+== Workflow Chain Continuity
+
+Commits created with the default `GITHUB_TOKEN` do not trigger further
+workflows. An automation design that assumes a bot commit will start the next
+workflow is broken by construction.
+
+Chains must therefore be built as one of:
+
+* a single continuous workflow
+* a reusable workflow call
+* an explicit `workflow_dispatch`
+* an explicit `repository_dispatch`
+* a GitHub App authenticated follow-up chain
+
+== Heartbeat and Sentinel
+
+Scheduled workflows are disabled after prolonged repository inactivity. The
+architecture must survive that.
+
+A documented heartbeat strategy may combine:
+
+* a periodic automation state report
+* `automation/state.json`
+* `automation/health.json`
+* a monthly status commit, made only when the repository would otherwise fall
+  inactive
+* a central sentinel workflow
+* a cross-repository health check
+* automatic issues when expected updates do not arrive
+* a manually dispatchable recovery workflow
+
+A heartbeat must never produce a false knowledge change. It updates automation
+metadata only and must be recognizable as such.
+
+A heartbeat reduces risk. It is not a guarantee that a hosted CI platform will
+run forever.
+
+A later central `aladin-sentinel` repository inventories known Knowledge Pack
+repositories, checks the last successful update, validation and release, detects
+disabled or failed automation, triggers recovery through `repository_dispatch`,
+publishes status reports and opens failure issues.
+
+The sentinel must never change subject-matter knowledge content.
+
+== Artifacts, Releases and Versioning
+
+Every published version produces manifest, canonical data, provenance metadata,
+checksums, a build log, the source commit, source hashes, the validator version,
+adapter versions, an evaluation report, optionally an SBOM, a build attestation
+and an immutable release artifact.
+
+A release may only be created when all schemas are valid, all references
+resolve, all security checks pass, all required evaluations pass and no recall
+or quarantine rule is violated.
+
+Automatic version selection is deterministic and testable:
+
+[cols="1,3",options="header"]
+|===
+| Increment
+| Trigger
+
+| Patch
+| Updated provenance, updated verification time, a correction without meaning
+  change, a metadata correction.
+
+| Minor
+| New claims, new entities, new sources, additional evidence, other
+  backward-compatible content.
+
+| Major
+| Incompatible structure, changed semantics of existing identifiers, removal of
+  required content, incompatible migration.
+|===
+
+A version decision must never rest on a free-form language-model judgement.
+
+== Rollback and Recall
+
+Every repository must be able to determine the last valid version, discard a
+candidate, reactivate a previous artifact, mark a faulty release as recalled,
+inform the registry about the recall, document the affected claims and sources
+and preserve the audit trail.
+
+A recall does not delete history.
+
+== Concurrency, Idempotency and Limits
+
+Update and release workflows must prevent competing concurrent runs through
+controlled concurrency groups. Two runs must never publish the same pack
+version. Repeating the same input must produce the same normalized result as
+far as technically possible.
+
+Every repository declares limits for run time, API calls, download size, file
+count, artifact size, retry count, language-model cost, parallel jobs and memory
+use. A faulty updater must not be able to generate unbounded cost or unbounded
+request volume.
+
+== Legal and Licensing
+
+Automatic retrieval does not imply permitted reuse.
+
+Before a source is activated, the repository documents origin, license, terms of
+use, permitted reuse, permitted storage, permitted transformation, permitted
+excerpts, required attribution and any deletion or recall obligation.
+
+When licensing is unclear:
+
+[source,text]
+----
+Do not publish automatically.
+----
+
+== Succession
+
+Repository ownership, organization structure, roles, machine identities,
+recovery procedures, release procedures, key rotation, a secret inventory
+without secret values, backup targets, mirror strategy, maintainer handover and
+the procedure for an abandoned founder account are documented outside this ADR,
+in `SUCCESSION.adoc`, `GOVERNANCE.adoc`, `SECURITY.adoc` and `MAINTAINERS.adoc`.
+
+No secret value is ever stored in documentation.
+
+Aladin repositories should not remain permanently bound to a single personal
+account. The recommended target is a GitHub organization with at least two owner
+roles, separated maintainer and bot permissions, an organization-owned GitHub
+App, protected branches or rulesets, documented succession, central workflow
+templates, a central sentinel and secrets separated by responsibility.
+
+Repository transfer requires explicit approval and is never performed
+automatically.
+
+== Backups and Mirroring
+
+Regular verifiable backups cover git history, tags, releases, artifacts,
+schemas, pack manifests, provenance data, registry metadata and automation
+configuration.
+
+Backup targets must be interchangeable: a second git remote, S3-compatible
+object storage, archived release bundles, an independent registry or an
+institutional mirror. The open standard must not depend on a single provider.
+
+== Positive Consequences
+
+* Knowledge Packs can stay current without a permanently present maintainer.
+* Every automated decision is auditable after the fact.
+* A failed update cannot destroy a working knowledge base.
+* Automation authority is bound to risk, not to convenience.
+* Machine identity replaces personal credentials.
+* Inactivity and ownership change have defined procedures.
+
+== Negative Consequences
+
+* Significantly more automation code, policy schemas and tests to maintain.
+* Update pipelines need their own security review.
+* Conservative gates will reject some legitimate updates.
+* Quarantined candidates accumulate and need periodic review.
+* Cross-repository automation requires a GitHub App and its own key rotation.
+* Full autonomy remains impossible for high-risk domains by design.
+
+== Alternatives Considered
+
+=== Manual Maintenance Only
+
+Rejected. It makes the knowledge legacy dependent on one person's continued
+attention, which is exactly the failure this ADR addresses.
+
+=== Fully Automatic Publication After a Successful Fetch
+
+Rejected. It converts every upstream defacement, licensing change or poisoned
+document into published Aladin knowledge.
+
+=== A Language Model Decides What to Publish
+
+Rejected. Model output is a candidate, not evidence. A model cannot be held to
+an audit trail and cannot grant a license clearance.
+
+=== One Central Service Updates All Packs
+
+Rejected as the only mechanism. It creates a single point of failure and
+contradicts the portability promise of ADR-0004. A central sentinel that
+monitors and can trigger recovery is acceptable; a central service that owns all
+updates is not.
+
+=== Personal Access Token Automation
+
+Rejected. It cannot be handed over, expires with the account and concentrates
+publication authority in one individual.
+
+== Relationship to Earlier Decisions
+
+ADR-0001:: Automation produces the versioned artifacts that ADR-0001 requires.
+Immutability and safe activation are preconditions for automated release.
+
+ADR-0002:: Candidates are normalized into the canonical model before validation.
+Adapters preserve provenance and must not invent evidence or raise confidence.
+
+ADR-0003:: Unchanged. Update code runs in the controlled build layer, never at
+the consumer, and never originates from pack content.
+
+ADR-0004:: The automation architecture is part of the public core. A proprietary
+runtime may extend it but must not weaken its gates.
+
+== Implementation Guidance
+
+Implementation proceeds in this order:
+
+. This ADR.
+. `specifications/automation-v1.adoc`, the first automation specification.
+. `schemas/update-policy.schema.json`.
+. Specification validation, release and health workflows for `aladin-spec`.
+. Continuation of the canonical schema series.
+. A Knowledge Pack repository template.
+. A minimal deterministic demo updater running against local fixtures or one
+  clearly permitted stable test source.
+. Update, failure, quarantine and rollback tests.
+. Only then, real external sources.
+
+No production automatic publication before the security and quality gates are
+fully tested.
+
+== Final Decision
+
+[quote]
+____
+Aladin Knowledge Packs must be capable of maintaining, validating, versioning
+and publishing their knowledge through auditable automation without depending
+on the continuous presence of their original creator.
+
+Autonomy is never equivalent to unreviewed publication. In doubt, the system
+preserves the last provably valid knowledge version.
+____
+
+Autonomous knowledge maintenance and succession are accepted as foundational
+architectural components of the Aladin ecosystem.
