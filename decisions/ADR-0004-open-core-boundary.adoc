@@ -85,19 +85,19 @@ The public core defines the portable knowledge ecosystem.
 Advanced intelligence, hosted services, commercial orchestration and proprietary data may remain private.
 
 [source,text]
-
-                ALADIN ECOSYSTEM
+----
+                        ALADIN ECOSYSTEM
 
 ┌──────────────────────────────────────────────────────┐
 │                    PUBLIC CORE                       │
 │                                                      │
 │  Specification · Schemas · Knowledge Packs           │
-│  Validator · SDKs · Registry Protocol · MCP           │
+│  Validator · SDKs · Registry Protocol · MCP          │
 │  Reference Gateway · Compatibility Rules             │
 └──────────────────────────┬───────────────────────────┘
-│
-│ open interfaces
-▼
+                           │
+                           │ open interfaces
+                           ▼
 ┌──────────────────────────────────────────────────────┐
 │              PROPRIETARY INTELLIGENCE                │
 │                                                      │
@@ -105,6 +105,7 @@ Advanced intelligence, hosted services, commercial orchestration and proprietary
 │  Personalization · Hosted Control Plane              │
 │  Enterprise Integrations · Proprietary Datasets      │
 └──────────────────────────────────────────────────────┘
+----
 
 The public core must remain independently usable.
 
@@ -320,18 +321,19 @@ Personal data must not be required by the public Knowledge Pack standard.
 The boundary between public and private components must use documented interfaces.
 
 [source,text]
-
+----
 Public Knowledge Pack
-│
-▼
+        │
+        ▼
 Public Validator
-│
-▼
+        │
+        ▼
 Public Gateway Interface
-│
-├── Public local runtime
-│
-└── Proprietary The Lamp runtime
+        │
+        ├── Public local runtime
+        │
+        └── Proprietary The Lamp runtime
+----
 
 The proprietary layer may extend the public interface.
 
@@ -360,11 +362,12 @@ A proprietary Aladin implementation may add fields under a clearly namespaced ex
 Example:
 
 [source,yaml]
-
+----
 extensions:
-ai.aladin.lamp:
-routing_profile: advanced
-context_policy: adaptive-v2
+  ai.aladin.lamp:
+    routing_profile: advanced
+    context_policy: adaptive-v2
+----
 
 Private extensions must not:
 
@@ -668,11 +671,8 @@ The README of every Aladin repository should state whether the component is:
 == Final Decision
 
 [quote]
-
----
-
+____
 The knowledge standard must remain open and independently usable. The intelligence built on top of it may remain proprietary.
-
----
+____
 
 Aladin adopts an open-core architecture with a portable public knowledge ecosystem and an optional proprietary intelligence layer.
