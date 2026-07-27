@@ -100,6 +100,14 @@ announced in this file.
 
 === Fixed
 
+* Change detection over a whole response body reported a change on every run
+  for the real demonstration source, because the endpoint returns reaction
+  counts that move while the release does not. At `propose` level that would
+  have opened a pull request on every scheduled run. A `mapped-values` method
+  was added, which hashes only the declared extracted values; the body hash is
+  still recorded as provenance. Found by running the pipeline against the live
+  endpoint three times and observing three candidates where there should have
+  been none.
 * A rate-limited run was reported as no-change, because the branch that ends a
   run without a candidate only recognized outright failure.
 * The offline update tests began contacting the live API once the example pack

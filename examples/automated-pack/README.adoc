@@ -142,6 +142,24 @@ it cannot compute, so a policy cannot smuggle computation into the pipeline.
 The evidence record points at `/tag_name` by JSON Pointer, so a reader can check
 the exact location the claim rests on.
 
+=== Why Change Detection Uses the Mapped Values
+
+This source uses `change_detection.method: mapped-values` rather than
+`content-hash`, and the reason is worth stating because it is easy to get
+wrong.
+
+The endpoint returns reaction counts alongside the release metadata. Those
+counts change while the release does not. Hashing the whole response body
+therefore reports a change on every retrieval, which would produce a candidate
+on every run and a pull request on every run.
+
+Hashing only the mapped values asks the question that matters: did the tag, the
+publication time or the release URL change? The body hash is still recorded on
+the source record as provenance of what was actually retrieved.
+
+This was found by running the pipeline against the live endpoint three times in
+a row and observing three candidates where there should have been none.
+
 === Licensing
 
 The response is GitHub API output, not a work under an SPDX-listed content

@@ -133,14 +133,36 @@ def run(workspace, schemas, **kwargs):
 # ---------------------------------------------------------------------------
 
 
-def test_matching_hash_produces_no_candidate(workspace, schemas, mock_server, release_document):
-    body = json.dumps(release_document, ensure_ascii=False).encode("utf-8")
-    seed_state(pack_of(workspace), content_hash=source_adapters.content_hash(body), etag="", last_modified="")
+def test_identical_response_produces_no_candidate(workspace, schemas, mock_server, release_document):
+    mock_server.routes.clear()
+    mock_server.add_json("/release", release_document)
+
+    baseline = run(workspace, schemas, apply_state=True)
+    assert baseline.outcome == "candidate-ready", "the first run establishes the baseline"
 
     result = run(workspace, schemas)
 
     assert result.outcome == "no-change"
     assert result.candidate_path is None or not result.candidate_path.exists()
+
+
+def test_content_hash_method_compares_the_whole_body(workspace, schemas, mock_server, release_document):
+    """The body-hash method remains available for sources without noise."""
+    pack = pack_of(workspace)
+    policy = read_policy(pack)
+    for source in policy["sources"]:
+        if source["id"] == SOURCE_ID:
+            source["change_detection"] = {"method": "content-hash"}
+    write_policy(pack, policy)
+
+    mock_server.routes.clear()
+    mock_server.add_json("/release", release_document)
+    body = json.dumps(release_document, ensure_ascii=False).encode("utf-8")
+    seed_state(pack, content_hash=source_adapters.content_hash(body), etag="", last_modified="")
+
+    result = run(workspace, schemas)
+
+    assert result.outcome == "no-change"
 
 
 def test_not_modified_produces_no_candidate(workspace, schemas, mock_server):
@@ -166,9 +188,79 @@ def test_not_modified_is_recorded_in_the_audit_trail(workspace, schemas, mock_se
     assert "not-modified" in decisions
 
 
+def test_volatile_fields_do_not_count_as_a_change(workspace, schemas, mock_server):
+    """A field the mapping ignores must not trigger an update.
+
+    Real APIs return counters and server timestamps that change between
+    identical states. The GitHub releases endpoint returns reaction counts.
+    Hashing the whole body would report a change on every run and produce a
+    candidate on every run, so change detection compares mapped values.
+    """
+    stable = {
+        "tag_name": "curl-8_21_0",
+        "published_at": "2026-06-24T06:03:04Z",
+        "html_url": "https://github.com/curl/curl/releases/tag/curl-8_21_0",
+    }
+
+    mock_server.routes.clear()
+    mock_server.add_json("/release", {**stable, "reactions": {"total_count": 1}})
+    first = run(workspace, schemas, apply_state=True)
+    assert first.outcome == "candidate-ready", "the first run establishes the baseline"
+
+    # Same release, different noise.
+    mock_server.routes.clear()
+    mock_server.add_json("/release", {**stable, "reactions": {"total_count": 99}})
+    second = run(workspace, schemas)
+
+    assert second.outcome == "no-change"
+    assert second.retrievals[0]["content_hash"] != first.retrievals[0]["content_hash"], (
+        "the bodies really do differ; only the mapped values are equal"
+    )
+
+
+def test_a_mapped_field_change_is_still_detected(workspace, schemas, mock_server):
+    """Ignoring noise must not mean ignoring the signal."""
+    mock_server.routes.clear()
+    mock_server.add_json(
+        "/release",
+        {
+            "tag_name": "curl-8_21_0",
+            "published_at": "2026-06-24T06:03:04Z",
+            "html_url": "https://github.com/curl/curl/releases/tag/curl-8_21_0",
+        },
+    )
+    run(workspace, schemas, apply_state=True)
+
+    mock_server.routes.clear()
+    mock_server.add_json(
+        "/release",
+        {
+            "tag_name": "curl-9_0_0",
+            "published_at": "2026-08-01T10:00:00Z",
+            "html_url": "https://github.com/curl/curl/releases/tag/curl-9_0_0",
+        },
+    )
+    result = run(workspace, schemas)
+
+    assert result.outcome == "candidate-ready"
+    assert result.changed_sources == [SOURCE_ID]
+
+
+def test_body_hash_is_still_recorded_as_provenance(workspace, schemas, mock_server, release_document):
+    """However the decision was made, the retrieved bytes stay attributable."""
+    mock_server.routes.clear()
+    mock_server.add_json("/release", release_document)
+
+    result = run(workspace, schemas, apply_state=True)
+
+    entry = next(s for s in read_state(pack_of(workspace))["sources"] if s["source_id"] == SOURCE_ID)
+    assert entry["content_hash"] == result.retrievals[0]["content_hash"]
+    assert entry["mapped_hash"].startswith("sha256:")
+
+
 def test_two_consecutive_runs_leave_the_pack_untouched(workspace, schemas, release_document):
-    body = json.dumps(release_document, ensure_ascii=False).encode("utf-8")
-    seed_state(pack_of(workspace), content_hash=source_adapters.content_hash(body))
+    mock_server_routes_seeded = run(workspace, schemas, apply_state=True)
+    assert mock_server_routes_seeded.outcome in {"candidate-ready", "no-change"}
 
     before = claims_of(pack_of(workspace))
     run(workspace, schemas)

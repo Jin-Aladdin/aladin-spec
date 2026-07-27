@@ -914,11 +914,13 @@
               "type": "string",
               "enum": [
                 "content-hash",
+                "mapped-values",
                 "etag",
                 "last-modified",
                 "version-field",
                 "structural-diff"
-              ]
+              ],
+              "description": "How a change is decided. content-hash compares the whole response body and is only usable when the source has no volatile fields. mapped-values compares only the fields the mapping actually extracts, which is the correct choice for any API whose response carries counters, timestamps or other noise the pack does not use."
             },
             "field": {
               "type": "string",
@@ -1284,6 +1286,31 @@
                 ]
               }
             }
+          }
+        },
+        {
+          "description": "Comparing only the mapped values requires a mapping to compare.",
+          "if": {
+            "properties": {
+              "change_detection": {
+                "properties": {
+                  "method": {
+                    "const": "mapped-values"
+                  }
+                },
+                "required": [
+                  "method"
+                ]
+              }
+            },
+            "required": [
+              "change_detection"
+            ]
+          },
+          "then": {
+            "required": [
+              "mapping"
+            ]
           }
         },
         {

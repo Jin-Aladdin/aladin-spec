@@ -528,7 +528,13 @@ The policy declares one change-detection method per source.
 | Meaning
 
 | `content-hash`
-| The normalized content hash differs from the recorded hash.
+| The hash of the whole response body differs from the recorded hash. Usable
+  only when the source has no volatile fields.
+
+| `mapped-values`
+| The hash of the declared mapped values differs from the recorded hash. The
+  correct choice for any source whose response carries fields the pack does
+  not use.
 
 | `etag`
 | The HTTP entity tag differs. MUST be combined with a hash check before a
@@ -547,6 +553,28 @@ The policy declares one change-detection method per source.
 
 An unchanged source MUST end the run with a recorded no-change result. It MUST
 NOT produce a candidate, a commit or a release.
+
+=== Volatile Fields
+
+Comparing whole response bodies is the obvious approach and is wrong for most
+real APIs.
+
+A response frequently contains fields that change while the underlying state
+does not: view counters, reaction counts, server-side timestamps, request
+identifiers, quota counters. The GitHub releases endpoint used by the reference
+example returns reaction counts. Hashing the body then reports a change on
+every retrieval, which produces a candidate on every run and, at `propose`
+level, a pull request on every run. That is not change detection; it is noise
+with a checksum.
+
+A source whose response carries fields the mapping does not read MUST therefore
+use `mapped-values`, which hashes only the declared extracted values in a
+canonical serialization. The question that decides an update is whether
+anything the pack actually uses changed.
+
+The body hash MUST still be recorded on the source record regardless of the
+method chosen. It is the provenance of what was retrieved, and it is
+independent of how the change decision was made.
 
 == Candidate Generation
 

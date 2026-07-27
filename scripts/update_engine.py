@@ -348,6 +348,40 @@ def apply_release_note_candidate(
     return changed
 
 
+def mapped_fingerprint(source: dict, retrieval: source_adapters.Retrieval) -> str | None:
+    """Hash only the values the mapping actually extracts.
+
+    Comparing whole response bodies works only for sources with no volatile
+    fields. Many APIs return counters, view numbers or server timestamps that
+    change between identical states; the GitHub releases endpoint returns
+    reaction counts. Hashing the raw body then reports a change on every run,
+    which produces a candidate on every run and defeats change detection.
+
+    Hashing the mapped values asks the question that actually matters: did
+    anything this pack uses change? Returns None when the response cannot be
+    mapped, so the caller can fall back to the body hash.
+    """
+    mapping = source.get("mapping")
+    if not mapping or not retrieval.content:
+        return None
+
+    limits = source.get("limits") or {}
+    try:
+        document = json.loads(retrieval.content.decode("utf-8"))
+        values = json_mapping.apply_mapping(
+            document,
+            mapping,
+            max_depth=limits.get("max_json_depth", json_mapping.DEFAULT_MAX_DEPTH),
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, json_mapping.MappingError):
+        return None
+
+    # Canonical serialization: sorted keys and fixed separators, so an equal
+    # set of values always hashes equally.
+    canonical = json.dumps(values, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return source_adapters.content_hash(canonical.encode("utf-8"))
+
+
 def apply_mapped_candidate(
     candidate_dir: Path,
     source: dict,
@@ -748,7 +782,23 @@ def run_update(
         if retrieval.last_modified:
             entry["last_modified"] = retrieval.last_modified
 
-        if entry.get("content_hash") == retrieval.content_hash:
+        method = (source.get("change_detection") or {}).get("method", "content-hash")
+        fingerprint = mapped_fingerprint(source, retrieval) if method == "mapped-values" else None
+
+        if fingerprint is not None:
+            unchanged = entry.get("mapped_hash") == fingerprint
+            comparison = "mapped values unchanged"
+            observed = fingerprint
+        else:
+            unchanged = entry.get("content_hash") == retrieval.content_hash
+            comparison = "content hash unchanged"
+            observed = retrieval.content_hash
+
+        # The body hash is recorded either way: it is the provenance of what was
+        # actually retrieved, independent of how the change decision was made.
+        entry["content_hash"] = retrieval.content_hash
+
+        if unchanged:
             result.audit.append(
                 audit_record(
                     run_id=run_id,
@@ -756,15 +806,17 @@ def run_update(
                     phase="change-detection",
                     subject=source_id,
                     decision="no-change",
-                    reason="content hash unchanged",
+                    reason=comparison,
                     policy_version=policy_version,
                     now=now,
-                    inputs=[retrieval.content_hash],
+                    inputs=[observed],
                 )
             )
             continue
 
-        changed_sources.append({"source": source, "retrieval": retrieval})
+        changed_sources.append(
+            {"source": source, "retrieval": retrieval, "fingerprint": fingerprint}
+        )
         result.changed_sources.append(source_id)
         result.audit.append(
             audit_record(
@@ -904,6 +956,8 @@ def run_update(
     for change in changed_sources:
         entry = _state_source(state, change["source"]["id"])
         entry["content_hash"] = change["retrieval"].content_hash
+        if change.get("fingerprint") is not None:
+            entry["mapped_hash"] = change["fingerprint"]
         entry["last_change_at"] = now
 
     result.finished_at = now

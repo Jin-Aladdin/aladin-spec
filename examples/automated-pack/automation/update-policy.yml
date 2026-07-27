@@ -88,7 +88,7 @@ sources:
         Only factual release metadata is used. Use of the API is governed by the
         GitHub Terms of Service rather than an SPDX-listed content license.
     change_detection:
-      method: content-hash
+      method: mapped-values
     conditional_requests:
       enabled: true
     freshness:

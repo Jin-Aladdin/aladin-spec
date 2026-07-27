@@ -21,10 +21,11 @@
       "source_id": "source:github.api.curl.releases.latest",
       "last_checked_at": "2026-07-27T10:58:02Z",
       "last_change_at": "2026-07-27T10:58:02Z",
-      "content_hash": "sha256:e7f66424a091f9c5433671bad8a373c1691476b020916899e1cedba91ef52c2e",
-      "etag": "W/\"bf0fcd4b65e9dcd8edc04c3db43693ec7d84630c8e334ac3d3d7567b053c76ac\"",
+      "content_hash": "sha256:1de2867b595802977a250f1fdc2d319943a23e161da7b1083d701c46364d51a7",
+      "etag": "W/\"edcbf8d5b1ec37ca069368db5a996fe97f7c4d54849eef4f289edf12569f8bb5\"",
       "last_modified": "Wed, 24 Jun 2026 06:03:04 GMT",
-      "consecutive_failures": 0
+      "consecutive_failures": 0,
+      "mapped_hash": "sha256:c04d78dd8519ac552d4c3098000a835d3d603567eec3c943908c5ea1086b822d"
     }
   ],
   "quarantine": [],
