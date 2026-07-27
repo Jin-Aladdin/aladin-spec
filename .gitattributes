@@ -1,0 +1,8 @@
+# Knowledge Pack data is hashed and compared byte for byte, so line endings
+# must stay deterministic across platforms.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.pdf binary
