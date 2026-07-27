@@ -523,6 +523,195 @@
     }
   ],
   "$defs": {
+    "fieldMapping": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 50,
+      "description": "Declarative extraction of fields from a retrieved JSON document. A rule locates a value by JSON Pointer and constrains it. There is deliberately no expression language: a mapping cannot express computation, so a policy cannot smuggle any.",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*$",
+        "maxLength": 80
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pointer"
+        ],
+        "properties": {
+          "pointer": {
+            "type": "string",
+            "pattern": "^(?:/(?:[^~/]|~0|~1)*)*$",
+            "maxLength": 2000,
+            "description": "RFC 6901 JSON Pointer to the value."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "integer",
+              "number",
+              "boolean",
+              "array",
+              "object"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "date",
+              "date-time",
+              "uri",
+              "email",
+              "ipv4",
+              "ipv6",
+              "hostname"
+            ]
+          },
+          "required": {
+            "type": "boolean",
+            "default": false
+          },
+          "default": {
+            "description": "Value used when an optional field is absent. A constant, never an expression."
+          },
+          "min_length": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100000
+          },
+          "max_length": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "pattern": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Regular expression the extracted string must match in full."
+          },
+          "enum": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "uniqueItems": true
+          },
+          "item_type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "integer",
+              "number",
+              "boolean"
+            ],
+            "description": "Type every element of an array field must have."
+          },
+          "max_items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          }
+        }
+      }
+    },
+    "transformation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "claim"
+      ],
+      "description": "How mapped fields become canonical records. Templates substitute mapped field names and nothing else: no attribute access, no arithmetic, no control flow. Volatile values such as retrieval time must not appear in a statement, because a statement that changes every run would produce a commit every run.",
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+          "description": "Version of this transformation. Recorded in provenance so a record can be traced to the rules that produced it."
+        },
+        "claim": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "statement_template"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^claim:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+              "maxLength": 240,
+              "description": "Stable identifier of the claim this source maintains. Deterministic by declaration, never generated per run."
+            },
+            "statement_template": {
+              "type": "string",
+              "minLength": 10,
+              "maxLength": 2000,
+              "description": "Statement text with {field} placeholders. Must describe exactly what the source supports, not a stronger conclusion."
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "factual",
+                "definition",
+                "observation"
+              ],
+              "default": "observation"
+            },
+            "confidence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Fixed confidence declared by the maintainer. Automation never raises it."
+            },
+            "valid_from_field": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*$",
+              "description": "Mapped field whose value becomes valid_from. Must be a date or date-time from the source, not the retrieval time."
+            }
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "fields"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^evidence:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+              "maxLength": 240
+            },
+            "fields": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "uniqueItems": true,
+              "minItems": 1,
+              "maxItems": 20,
+              "description": "Mapped fields this evidence record points at. Their pointers become the evidence locator, so the evidence names the exact locations the claim rests on."
+            }
+          }
+        },
+        "entity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "pattern": "^entity:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+              "maxLength": 240
+            }
+          }
+        }
+      }
+    },
     "automationLevel": {
       "type": "string",
       "enum": [
@@ -776,12 +965,31 @@
             "timeout_seconds": {
               "type": "integer",
               "minimum": 1,
-              "maximum": 600
+              "maximum": 600,
+              "description": "Default timeout used when connect and read timeouts are not declared separately."
+            },
+            "connect_timeout_seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 600,
+              "description": "Time allowed to establish the connection."
+            },
+            "read_timeout_seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 600,
+              "description": "Time allowed for the response, applied after the connection is established."
             },
             "max_redirects": {
               "type": "integer",
               "minimum": 0,
               "maximum": 10
+            },
+            "max_json_depth": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 256,
+              "description": "Maximum nesting depth accepted in a retrieved document. Protects any recursive consumer from a deeply nested payload."
             },
             "rate_limit_per_hour": {
               "type": "integer",
@@ -789,6 +997,48 @@
               "maximum": 10000
             }
           }
+        },
+        "conditional_requests": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Use of If-None-Match and If-Modified-Since. A 304 response means no candidate, no version, no commit and no pull request.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "retry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_attempts"
+          ],
+          "description": "Per-source retry behaviour. Only transport-level failures are retried. A refused target, a wrong content type, an oversized response, invalid JSON or a policy violation is a decision and is never retried.",
+          "properties": {
+            "max_attempts": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5
+            },
+            "backoff_seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3600
+            },
+            "respect_retry_after": {
+              "type": "boolean",
+              "default": true,
+              "description": "Honour a Retry-After header instead of the configured backoff."
+            }
+          }
+        },
+        "mapping": {
+          "$ref": "#/$defs/fieldMapping"
+        },
+        "transformation": {
+          "$ref": "#/$defs/transformation"
         },
         "notes": {
           "type": "string",
@@ -856,6 +1106,37 @@
                 ]
               }
             ]
+          }
+        },
+        {
+          "description": "A JSON API source must declare how its response becomes records. Without a mapping the retrieved document has no defined meaning, and without a transformation the pipeline would have to guess which records to write.",
+          "if": {
+            "properties": {
+              "adapter": {
+                "const": "json-api"
+              }
+            },
+            "required": [
+              "adapter"
+            ]
+          },
+          "then": {
+            "required": [
+              "mapping",
+              "transformation",
+              "retry"
+            ],
+            "properties": {
+              "url": {
+                "pattern": "^https://",
+                "description": "Retrieval requires TLS. Plain HTTP is refused by the adapter."
+              },
+              "limits": {
+                "required": [
+                  "max_redirects"
+                ]
+              }
+            }
           }
         },
         {

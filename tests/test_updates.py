@@ -189,13 +189,20 @@ def test_unknown_adapter_is_refused():
         )
 
 
-def test_network_adapters_fail_closed_until_implemented():
-    for name in ("json-api", "html-documentation", "git-repository", "github-release"):
+def test_unimplemented_adapters_fail_closed():
+    """Declared but unimplemented adapters refuse rather than degrade."""
+    for name in ("html-documentation", "git-repository", "github-release", "feed"):
         with pytest.raises(source_adapters.AdapterError, match="not implemented"):
             source_adapters.fetch(
                 {"id": "source:x", "adapter": name, "url": "https://example.org/"},
                 repository_root=REPOSITORY_ROOT,
             )
+
+
+def test_implemented_adapters_are_the_declared_ones():
+    """The registry never gains an adapter that is not declared."""
+    assert set(source_adapters.IMPLEMENTED_ADAPTERS) <= set(source_adapters.DECLARED_ADAPTERS)
+    assert set(source_adapters.ADAPTERS) == set(source_adapters.DECLARED_ADAPTERS)
 
 
 # ---------------------------------------------------------------------------

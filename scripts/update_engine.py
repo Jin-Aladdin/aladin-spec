@@ -36,12 +36,14 @@ import argparse
 import json
 import shutil
 import sys
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import json_mapping  # noqa: E402
 import source_adapters  # noqa: E402
 import validate  # noqa: E402
 from security_scan import scan_pack  # noqa: E402
@@ -276,8 +278,9 @@ def build_candidate(pack_dir: Path, candidate_dir: Path) -> Path:
 
 
 def normalize_release_notes(payload: dict) -> dict:
-    """Normalize the demonstration source into a flat, comparable shape.
+    """Normalize the static-file demonstration source into a flat shape.
 
+    Kept for the offline example, which predates the declarative mapping.
     Normalization is pure: same input, same output, no clock, no network.
     """
     release = payload.get("latest_release") or {}
@@ -295,7 +298,7 @@ def apply_release_note_candidate(
     normalized: dict,
     retrieval: source_adapters.Retrieval,
 ) -> list[str]:
-    """Apply the normalized source to the candidate. Returns changed record ids.
+    """Apply the normalized static-file source to the candidate.
 
     Only declarative record fields are touched. Confidence is not raised, no
     source or evidence is invented, and superseded content is rewritten only
@@ -340,6 +343,90 @@ def apply_release_note_candidate(
             continue
         record["retrieved_at"] = retrieval.retrieved_at
         record["content_hash"] = retrieval.content_hash
+    _write_jsonl(sources_path, sources)
+
+    return changed
+
+
+def apply_mapped_candidate(
+    candidate_dir: Path,
+    source: dict,
+    retrieval: source_adapters.Retrieval,
+) -> list[str]:
+    """Apply a declaratively mapped source to the candidate.
+
+    The statement is rendered from mapped values only. Retrieval time is
+    deliberately kept out of it: a statement containing the clock would differ
+    on every run and produce a commit on every run, which is the opposite of
+    what a change-detecting pipeline is for. The retrieval time belongs to
+    provenance fields instead, where it can move without changing meaning.
+    """
+    mapping = source.get("mapping") or {}
+    transformation = source.get("transformation") or {}
+    limits = source.get("limits") or {}
+
+    try:
+        document = json.loads(retrieval.content.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise UpdateError(f"retrieved document is not usable JSON: {exc}") from exc
+
+    values = json_mapping.apply_mapping(
+        document,
+        mapping,
+        max_depth=limits.get("max_json_depth", json_mapping.DEFAULT_MAX_DEPTH),
+    )
+    pointers = json_mapping.mapped_pointers(mapping)
+
+    changed: list[str] = []
+    claim_rule = transformation.get("claim") or {}
+    claim_id = claim_rule.get("id")
+    statement = json_mapping.render_template(claim_rule.get("statement_template", ""), values)
+
+    claims_path = candidate_dir / "claims" / "claims.jsonl"
+    claims = _read_jsonl(claims_path)
+    for claim in claims:
+        if claim.get("id") != claim_id:
+            continue
+        if claim.get("statement") != statement:
+            claim["statement"] = statement
+            changed.append(claim["id"])
+        claim["last_verified_at"] = retrieval.retrieved_at
+        valid_from_field = claim_rule.get("valid_from_field")
+        if valid_from_field and valid_from_field in values:
+            claim["valid_from"] = values[valid_from_field]
+    _write_jsonl(claims_path, claims)
+
+    evidence_rule = transformation.get("evidence") or {}
+    evidence_id = evidence_rule.get("id")
+    if evidence_id:
+        fields = [f for f in evidence_rule.get("fields", []) if f in pointers]
+        evidence_path = candidate_dir / "evidence" / "evidence.jsonl"
+        evidence = _read_jsonl(evidence_path)
+        for record in evidence:
+            if record.get("id") != evidence_id:
+                continue
+            if fields:
+                # The locator points at the exact field the claim rests on, so
+                # a reader can check the source without re-deriving anything.
+                record["locator"] = {"type": "json-pointer", "pointer": pointers[fields[0]]}
+                excerpt = " ".join(str(values[f]) for f in fields if f in values)
+                if excerpt and record.get("excerpt") != excerpt:
+                    record["excerpt"] = excerpt
+                    changed.append(record["id"])
+            record["captured_at"] = retrieval.retrieved_at
+            verification = record.setdefault("verification", {})
+            verification["verified_at"] = retrieval.retrieved_at
+        _write_jsonl(evidence_path, evidence)
+
+    sources_path = candidate_dir / "sources" / "sources.jsonl"
+    sources = _read_jsonl(sources_path)
+    for record in sources:
+        if record.get("id") != retrieval.source_id:
+            continue
+        record["retrieved_at"] = retrieval.retrieved_at
+        record["content_hash"] = retrieval.content_hash
+        if retrieval.final and retrieval.final != record.get("url"):
+            record["canonical_url"] = retrieval.final
     _write_jsonl(sources_path, sources)
 
     return changed
@@ -510,6 +597,47 @@ def rollback(pack_dir: Path, candidate_dir: Path | None = None) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _fetch_with_retry(
+    source: dict,
+    *,
+    root: Path,
+    now: str,
+    state: dict,
+    options: dict,
+    sleep=time.sleep,
+) -> source_adapters.Retrieval:
+    """Retrieve one source, retrying only what is worth retrying.
+
+    A refused target, a wrong content type, an oversized response, invalid
+    JSON or a policy violation is a decision: repeating the request produces
+    the same answer and only adds load. Transport failures and selected server
+    errors are transient and get a bounded number of attempts.
+    """
+    retry = source.get("retry") or {}
+    max_attempts = max(1, int(retry.get("max_attempts", 1)))
+    backoff = int(retry.get("backoff_seconds", 0))
+    respect_retry_after = retry.get("respect_retry_after", True)
+
+    last_error: source_adapters.AdapterError | None = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return source_adapters.fetch(
+                source, repository_root=root, now=now, state=state, **options
+            )
+        except source_adapters.AdapterError as exc:
+            last_error = exc
+            if exc.rate_limited or not exc.retryable or attempt == max_attempts:
+                raise
+            delay = backoff
+            if respect_retry_after and exc.retry_after_seconds is not None:
+                delay = exc.retry_after_seconds
+            if delay > 0:
+                sleep(delay)
+
+    assert last_error is not None
+    raise last_error
+
+
 def run_update(
     pack_dir: Path,
     *,
@@ -519,8 +647,14 @@ def run_update(
     now: str | None = None,
     run_id: str = "local",
     apply_state: bool = False,
+    adapter_options: dict | None = None,
 ) -> RunResult:
-    """Execute one update run for one pack."""
+    """Execute one update run for one pack.
+
+    ``adapter_options`` is passed straight to the adapter and exists so tests
+    can point a network adapter at a local mock server. It is never populated
+    from pack or policy content.
+    """
     now = now or _utc_now()
     if schemas is None:
         schemas, schema_findings = validate.load_schemas(root / "schemas", root)
@@ -558,11 +692,20 @@ def run_update(
         source_id = source.get("id", "<unknown>")
         entry = _state_source(state, source_id)
         try:
-            retrieval = source_adapters.fetch(source, repository_root=root, now=now)
+            retrieval = _fetch_with_retry(
+                source,
+                root=root,
+                now=now,
+                state=entry,
+                options=adapter_options or {},
+            )
         except source_adapters.AdapterError as exc:
             entry["consecutive_failures"] = entry.get("consecutive_failures", 0) + 1
             entry["last_checked_at"] = now
-            result.outcome = "failed"
+            # A rate limit is a scheduling signal, not a knowledge change and
+            # not a defect in the pack. The run is deferred, the last valid
+            # version stays active and nothing is written to the records.
+            result.outcome = "rate-limited" if exc.rate_limited else "failed"
             result.messages.append(f"{source_id}: {exc.reason}")
             result.audit.append(
                 audit_record(
@@ -570,7 +713,7 @@ def run_update(
                     trigger=trigger,
                     phase="retrieval",
                     subject=source_id,
-                    decision="failed",
+                    decision="rate-limited" if exc.rate_limited else "failed",
                     reason=exc.reason,
                     policy_version=policy_version,
                     now=now,
@@ -581,6 +724,29 @@ def run_update(
         result.retrievals.append(retrieval.to_record())
         entry["last_checked_at"] = now
         entry["consecutive_failures"] = 0
+
+        if retrieval.not_modified:
+            # The server confirmed nothing changed. No candidate, no version,
+            # no commit, no pull request.
+            result.audit.append(
+                audit_record(
+                    run_id=run_id,
+                    trigger=trigger,
+                    phase="change-detection",
+                    subject=source_id,
+                    decision="not-modified",
+                    reason="server responded 304 to the conditional request",
+                    policy_version=policy_version,
+                    now=now,
+                    inputs=[retrieval.content_hash] if retrieval.content_hash else [],
+                )
+            )
+            continue
+
+        if retrieval.etag:
+            entry["etag"] = retrieval.etag
+        if retrieval.last_modified:
+            entry["last_modified"] = retrieval.last_modified
 
         if entry.get("content_hash") == retrieval.content_hash:
             result.audit.append(
@@ -643,10 +809,19 @@ def run_update(
     try:
         for change in changed_sources:
             retrieval = change["retrieval"]
-            payload = json.loads(retrieval.content.decode("utf-8"))
-            normalized = normalize_release_notes(payload)
-            apply_release_note_candidate(candidate_dir, normalized, retrieval)
-    except (UnicodeDecodeError, json.JSONDecodeError, UpdateError) as exc:
+            source = change["source"]
+            if source.get("mapping") and source.get("transformation"):
+                apply_mapped_candidate(candidate_dir, source, retrieval)
+            else:
+                payload = json.loads(retrieval.content.decode("utf-8"))
+                normalized = normalize_release_notes(payload)
+                apply_release_note_candidate(candidate_dir, normalized, retrieval)
+    except (
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        json_mapping.MappingError,
+        UpdateError,
+    ) as exc:
         reason = f"candidate generation failed: {exc}"
         result.outcome = "quarantined"
         result.messages.append(reason)
