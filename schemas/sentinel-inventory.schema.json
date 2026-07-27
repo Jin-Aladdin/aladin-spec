@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.2.0/schemas/sentinel-inventory.schema.json",
+  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.3.0/schemas/sentinel-inventory.schema.json",
   "title": "Aladdin Sentinel Inventory",
   "description": "Normative schema for the inventory a sentinel repository watches. The sentinel exists because a repository cannot reliably report its own silence: when its scheduled workflows are disabled, the thing that would notice is disabled with them. The inventory declares which repositories are watched and what counts as too quiet for each.",
   "type": "object",

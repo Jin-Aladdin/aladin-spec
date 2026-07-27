@@ -10,7 +10,13 @@ The specification follows Semantic Versioning. While the series is `0.x`,
 breaking changes are possible between minor versions and every one of them is
 announced in this file.
 
-== Unreleased
+== 0.3.0, 2026-07-27
+
+Automatic registration of Knowledge Packs, and the documentation needed to
+continue this project without its author.
+
+Schema identifiers move to `v0.3.0` as ADR-0006 requires. No schema content
+changed: a pack valid under `0.2.0` stays valid.
 
 === Added
 
