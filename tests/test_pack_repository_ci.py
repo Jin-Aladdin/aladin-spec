@@ -282,3 +282,74 @@ def test_build_tooling_never_reaches_the_artifact(tmp_path):
     assert not any(name.startswith("scripts/") for name in names)
     assert not any(name.endswith(".py") for name in names)
     assert any(name == "aladdin-pack.yml" for name in names)
+
+
+@pytest.mark.parametrize(
+    "filename", [".gitignore", ".gitattributes", ".editorconfig", "LICENSE", "CODEOWNERS"]
+)
+def test_repository_scaffolding_does_not_fail_the_security_gate(tmp_path, filename):
+    """A pack repository is a repository and carries repository files.
+
+    Found on the first real pack: .gitignore has no extension, so the scanner
+    reported it as an undeclared file type. It is not knowledge, and it is
+    also not a defect.
+    """
+    from security_scan import scan_pack
+
+    pack = tmp_path / "pack"
+    bootstrap.create_pack(
+        pack,
+        pack_id="aladdin-kb-scaffolding",
+        name="Scaffolding Test Pack",
+        description="Pack used to check that repository files do not fail the gate.",
+        domain="scaffolding",
+    )
+    (pack / filename).write_text("# repository scaffolding\n", encoding="utf-8")
+
+    findings = scan_pack(pack, pack)
+    assert findings == [], [str(f) for f in findings]
+
+
+def test_repository_scaffolding_is_still_scanned_for_secrets(tmp_path):
+    """Exempt from the type check is not exempt from the content check."""
+    from security_scan import scan_pack
+
+    pack = tmp_path / "pack"
+    bootstrap.create_pack(
+        pack,
+        pack_id="aladdin-kb-secret",
+        name="Secret Test Pack",
+        description="Pack used to check that exempt files are still scanned.",
+        domain="secret",
+    )
+    (pack / ".gitignore").write_text(
+        "-----BEGIN RSA PRIVATE KEY-----\nnot really a key\n", encoding="utf-8"
+    )
+
+    findings = scan_pack(pack, pack)
+    assert any("private key" in str(f) for f in findings)
+
+
+def test_licence_reaches_the_artifact_but_git_config_does_not(tmp_path):
+    """Terms travel with the content; repository configuration does not."""
+    import zipfile
+
+    import build_artifact
+
+    pack = tmp_path / "pack"
+    bootstrap.create_pack(
+        pack,
+        pack_id="aladdin-kb-licence",
+        name="Licence Test Pack",
+        description="Pack used to check which scaffolding reaches an artifact.",
+        domain="licence",
+    )
+    (pack / "LICENSE").write_text("Apache License 2.0\n", encoding="utf-8")
+    (pack / ".gitignore").write_text(".candidate/\n", encoding="utf-8")
+
+    result = build_artifact.build(pack, tmp_path / "dist", source_commit="0" * 40)
+    with zipfile.ZipFile(result.archive) as archive:
+        names = archive.namelist()
+
+    assert "LICENSE" in names, "a consumer must receive the terms"
+    assert ".gitignore" not in names

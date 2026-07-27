@@ -95,6 +95,30 @@ SECRET_MARKERS: tuple[tuple[str, str], ...] = (
     ("sk-ant-", "Anthropic API key"),
 )
 
+#: Files that belong to the repository rather than to the pack. They carry no
+#: extension, or one the declarative allowlist does not know, and they are not
+#: knowledge: they configure git, the editor or the licence of the repository
+#: that holds the pack.
+#:
+#: This is the same distinction as IGNORED_DIRECTORIES, at file granularity.
+#: A pack repository is a repository, and a scanner that cannot tell the
+#: difference reports the scaffolding instead of the content.
+REPOSITORY_FILES = frozenset(
+    {
+        ".gitignore",
+        ".gitattributes",
+        ".gitmodules",
+        ".editorconfig",
+        ".mailmap",
+        "CODEOWNERS",
+        "LICENSE",
+        "LICENCE",
+        "LICENSE.txt",
+        "NOTICE",
+        "COPYING",
+    }
+)
+
 DEFAULT_MAX_FILE_BYTES = 5_000_000
 DEFAULT_MAX_FILES = 5_000
 
@@ -180,6 +204,13 @@ def scan_pack(
             findings.append(Finding(rel, "file resolves outside the pack directory"))
             continue
 
+        # Repository scaffolding is checked for content, not for file type:
+        # a licence file has no extension and is not knowledge, but it also
+        # must not be allowed to hide a private key.
+        if path.name in REPOSITORY_FILES:
+            _scan_content(path, rel, findings, max_file_bytes)
+            continue
+
         suffix = path.suffix.lower()
         if suffix in EXECUTABLE_SUFFIXES:
             findings.append(
@@ -190,29 +221,7 @@ def scan_pack(
                 Finding(rel, f"undeclared file type {suffix or '(none)'!r} inside a pack")
             )
 
-        size = path.stat().st_size
-        if size > max_file_bytes:
-            findings.append(Finding(rel, f"file is {size} bytes, above the {max_file_bytes} limit"))
-
-        head = path.open("rb").read(8)
-        for signature, description in BINARY_SIGNATURES:
-            if head.startswith(signature):
-                findings.append(Finding(rel, f"binary content detected: {description}"))
-                break
-
-        try:
-            text = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            findings.append(Finding(rel, "file is not valid UTF-8 text"))
-            continue
-
-        if "\x00" in text:
-            findings.append(Finding(rel, "file contains NUL bytes"))
-
-        for number, line in enumerate(text.splitlines(), start=1):
-            for marker, description in SECRET_MARKERS:
-                if marker in line:
-                    findings.append(Finding(rel, f"possible {description} committed", line=number))
+        _scan_content(path, rel, findings, max_file_bytes)
 
     if file_count > max_files:
         findings.append(
@@ -220,6 +229,38 @@ def scan_pack(
         )
 
     return findings
+
+
+def _scan_content(path: Path, rel: str, findings: list[Finding], max_file_bytes: int) -> None:
+    """Check what a file contains, independent of what kind of file it is.
+
+    Applied to declarative pack content and to repository scaffolding alike:
+    a licence file is not knowledge, but it must still not carry a private key
+    or a binary payload.
+    """
+    size = path.stat().st_size
+    if size > max_file_bytes:
+        findings.append(Finding(rel, f"file is {size} bytes, above the {max_file_bytes} limit"))
+
+    head = path.open("rb").read(8)
+    for signature, description in BINARY_SIGNATURES:
+        if head.startswith(signature):
+            findings.append(Finding(rel, f"binary content detected: {description}"))
+            return
+
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        findings.append(Finding(rel, "file is not valid UTF-8 text"))
+        return
+
+    if "\x00" in text:
+        findings.append(Finding(rel, "file contains NUL bytes"))
+
+    for number, line in enumerate(text.splitlines(), start=1):
+        for marker, description in SECRET_MARKERS:
+            if marker in line:
+                findings.append(Finding(rel, f"possible {description} committed", line=number))
 
 
 def discover_packs(root: Path) -> list[Path]:

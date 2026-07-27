@@ -10,6 +10,20 @@ The specification follows Semantic Versioning. While the series is `0.x`,
 breaking changes are possible between minor versions and every one of them is
 announced in this file.
 
+== Unreleased
+
+=== Fixed
+
+* The security gate rejected ordinary repository files. `.gitignore` has no
+  extension, so it was reported as an undeclared file type, and the first real
+  pack repository failed on it. A pack repository is a repository: it carries
+  git configuration, an editor configuration and a licence, none of which are
+  knowledge and none of which are defects. Those files are now exempt from the
+  file-type check and still scanned for secrets and binary content, because
+  exempt from one check is not exempt from all of them. The artifact builder
+  drops repository configuration and keeps the licence, so a consumer receives
+  the terms the content is published under.
+
 == 0.2.2, 2026-07-27
 
 A patch so a Knowledge Pack repository containing build tooling can run its
