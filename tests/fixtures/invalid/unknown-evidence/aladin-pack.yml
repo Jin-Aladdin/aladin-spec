@@ -1,0 +1,55 @@
+schema_version: "0.1.0"
+
+pack:
+  id: aladin-kb-unknown-evidence
+  name: Aladin Kb Unknown Evidence
+  version: "0.1.0"
+  description: >-
+    Fixture Knowledge Pack used by the Aladin specification test suite to
+    exercise one specific validation rule.
+
+specification:
+  name: aladin-knowledge-pack
+  version: "0.1.0"
+  compatibility:
+    minimum_runtime: "0.1.0"
+    supported_specification_series:
+      - "0.x"
+
+content:
+  domains:
+    - test
+  content_types:
+    - claims
+    - sources
+    - evidence
+    - entities
+  entry_points:
+    - claims/claims.jsonl
+    - sources/sources.jsonl
+    - evidence/evidence.jsonl
+    - entities/entities.jsonl
+
+languages:
+  primary: en
+  available:
+    - en
+
+licenses:
+  code: Apache-2.0
+  content: CC-BY-4.0
+
+maintainers:
+  - name: Jin-Aladdin
+    github: Jin-Aladdin
+    role: owner
+
+lifecycle:
+  status: experimental
+  created_at: "2026-07-27T00:00:00Z"
+  updated_at: "2026-07-27T00:00:00Z"
+
+security:
+  declarative_only: true
+  runtime_code: false
+  prompt_injection_reviewed: true

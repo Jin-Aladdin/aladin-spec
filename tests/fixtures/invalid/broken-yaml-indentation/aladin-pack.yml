@@ -1,0 +1,9 @@
+schema_version: "0.1.0"
+
+pack:
+id: aladin-kb-broken-yaml
+name: Broken Yaml Indentation
+version: "0.1.0"
+description: >-
+Fixture manifest whose block structure was flattened and can no longer
+be parsed as YAML.
