@@ -1,0 +1,240 @@
+= ADR-0006: Schema Identifier Strategy
+Jin-Aladdin
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+:icons: font
+
+[cols="1,3",options="header"]
+|===
+| Field
+| Value
+
+| Status
+| Accepted
+
+| Decision date
+| 2026-07-27
+
+| Decision owners
+| Aladdin Spec Maintainers
+
+| Specification phase
+| Pre-Alpha
+
+| Related components
+| JSON Schemas, Validator, SDKs, Registry, Knowledge Pack repositories
+|===
+
+== Context
+
+Every schema in `schemas/` currently carries an `$id` of this shape:
+
+[source,text]
+----
+https://github.com/Jin-Aladdin/aladdin-spec/blob/main/schemas/entity.schema.json
+----
+
+That URL is a GitHub HTML page, not a schema resource. Fetching it returns a
+web page wrapping the JSON, so the identifier cannot be dereferenced by a
+tool. It also points at `main`, a moving reference: the document behind it
+changes whenever the branch changes, while `$id` is supposed to identify a
+specific schema.
+
+In JSON Schema, `$id` is primarily an identifier and is not required to be
+fetchable. But it is the base URI against which `$ref` resolves, and it is what
+every downstream implementation will use to name and cache the schema. A wrong
+identifier is inherited by every conformant implementation, so it is cheaper to
+fix before anyone depends on it than after.
+
+== Problem
+
+Three questions had to be answered before the first public release.
+
+Is it still safe to change?:: Changing `$id` after publication breaks every
+consumer that cached or referenced the schema by identifier.
+
+What should the identifier be?:: It must be stable, version-bound and
+dereferenceable, and it must not invent a domain the project does not own.
+
+How are drafts separated from published schemas?:: Work continues on `main`
+after a version is tagged. A reader must be able to tell which document is the
+published `0.1.0` schema and which is the current working draft.
+
+== Impact Assessment
+
+Checked on the decision date, before any change was made:
+
+[cols="1,1,2",options="header"]
+|===
+| Signal
+| Observed
+| Consequence
+
+| Published releases
+| none
+| No artifact references the current identifiers.
+
+| Git tags
+| none
+| No version is pinned to them.
+
+| Forks
+| none
+| No copy is being maintained elsewhere.
+
+| Stars
+| 2
+| Interest, not integration. A star creates no schema dependency.
+
+| Registry
+| does not exist
+| Nothing resolves identifiers today.
+
+| Published Knowledge Packs
+| none
+| No pack was built against these identifiers.
+
+| Specification status
+| `0.1.0-draft`, Pre-Alpha
+| The series explicitly permits breaking changes.
+|===
+
+There is no external consumer. The change is safe now and will not be safe
+later.
+
+== Decision
+
+Schema identifiers become version-bound, dereferenceable URLs under a domain
+the project already controls content on:
+
+[source,text]
+----
+https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.1.0/schemas/entity.schema.json
+----
+
+Three properties follow from this shape.
+
+Dereferenceable:: `raw.githubusercontent.com` returns the schema document
+itself, not an HTML page.
+
+Version-bound:: The path segment is a release tag, not a branch. Once `v0.1.0`
+is tagged, the document behind that URL is immutable, which is exactly what an
+identifier requires.
+
+Not invented:: The project does not own a domain today. Inventing one, or
+claiming an identifier under a namespace the project does not control, would be
+worse than a slightly verbose URL. When a project-owned domain exists, moving to
+it is itself a version-bound change and is handled by the migration rule below.
+
+=== Draft Versus Published
+
+The version in an `$id` is the *specification version the schema belongs to*,
+not the commit it currently sits in.
+
+[cols="1,2",options="header"]
+|===
+| Location
+| Meaning
+
+| `schemas/*.schema.json` on `main`
+| The working draft of the next unreleased version. Its `$id` names the version
+  it will be published as.
+
+| `.../v0.1.0/schemas/*.schema.json`
+| The published, immutable `0.1.0` schema, available once the tag exists.
+|===
+
+Until `v0.1.0` is tagged, the identifier is reserved and does not resolve. That
+is the honest state of a draft: the schema has an identity, and it has not been
+published yet. It is not disguised as published by pointing at a branch.
+
+=== Migration Rule
+
+When the specification version changes, every `$id` is updated to the new
+version in the same change that sets the version. The identifier and the
+version never drift apart.
+
+A schema whose content changes in a breaking way within an unreleased version
+does not need a new identifier, because the version has not been published.
+Once a version is tagged, its schemas are frozen: any further change belongs to
+the next version and carries the next version's identifier.
+
+== Consequences
+
+=== Positive
+
+* Identifiers can be resolved by tooling instead of returning a web page.
+* An identifier names one immutable document rather than a moving branch.
+* Drafts and published schemas are distinguishable without reading git history.
+* No domain is invented and no namespace is claimed that the project does not
+  control.
+* The correction happens while it costs nothing.
+
+=== Negative
+
+* Identifiers do not resolve until the corresponding tag exists. This is
+  accurate but will surprise someone who tries to fetch a draft identifier.
+* Every version bump touches every schema file. A test enforces consistency so
+  this cannot drift silently.
+* The identifiers are tied to GitHub. Moving to a project-owned domain later is
+  another identifier migration, and it is bound to a version like this one.
+
+=== Breaking Change
+
+This is a breaking change to the public schema identifiers. It is made
+deliberately in the `0.x` draft series, with no published release and no known
+external consumer, and it is recorded in `CHANGELOG.adoc`.
+
+== Alternatives Considered
+
+=== Keep the blob URLs
+
+Rejected. They are not dereferenceable and they point at a moving branch. Every
+implementation would inherit the defect.
+
+=== Point at `main` on raw.githubusercontent.com
+
+Rejected. It resolves, but the document behind the identifier changes whenever
+`main` changes. An identifier that names different documents over time is not an
+identifier.
+
+=== Invent a project domain, for example `aladdin.dev`
+
+Rejected. The project does not own it. Publishing identifiers under a namespace
+the project does not control is a correctness problem and a security problem:
+whoever does own it could serve schemas in the project's name.
+
+=== Use URN-style identifiers, for example `urn:aladdin:schema:entity:0.1.0`
+
+Rejected for now. A URN is stable and honest about not being fetchable, but it
+gives tooling nothing to resolve, and the ecosystem this specification targets
+expects retrievable schemas. Worth revisiting if a registry with a resolver
+appears.
+
+== Relationship to Earlier Decisions
+
+ADR-0004:: The public schemas remain public and implementable. A dereferenceable
+identifier strengthens independent implementation.
+
+ADR-0005:: Automation validates packs against these schemas. A resolvable,
+version-bound identifier is what lets a Knowledge Pack repository pin the exact
+schema version its gates ran against.
+
+== Implementation
+
+. Rewrite `$id` in every schema to the versioned raw URL.
+. Add a test asserting that every `$id` follows the pattern, carries the current
+  specification version and matches its filename.
+. Record the breaking change in `CHANGELOG.adoc`.
+. Tag `v0.1.0` when the draft is released, which makes every identifier resolve.
+
+== Final Decision
+
+[quote]
+____
+A schema identifier names one immutable document at one specification version,
+and it can be fetched. It is never a branch and never a domain the project does
+not control.
+____

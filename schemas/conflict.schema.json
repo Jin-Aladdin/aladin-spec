@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Jin-Aladdin/aladdin-spec/blob/main/schemas/conflict.schema.json",
+  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.1.0/schemas/conflict.schema.json",
   "title": "Aladdin Knowledge Conflict",
   "description": "Normative schema for a conflict record in an Aladdin Knowledge Pack. A conflict preserves a meaningful disagreement instead of silently deleting one side. Recording a conflict is not a verdict: an unresolved conflict is a legitimate and permanent state, and a resolved conflict documents who decided and why.",
   "type": "object",
