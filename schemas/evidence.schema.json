@@ -1,0 +1,576 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jin-Aladdin/aladin-spec/blob/main/schemas/evidence.schema.json",
+  "title": "Aladin Knowledge Evidence",
+  "description": "Normative schema for precise evidence records that connect Aladin claims to exact locations, fragments or records within a source.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "source_id",
+    "locator",
+    "captured_at",
+    "verification"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^evidence:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "minLength": 12,
+      "maxLength": 240,
+      "description": "Stable namespaced identifier beginning with evidence:."
+    },
+    "source_id": {
+      "$ref": "#/$defs/sourceId"
+    },
+    "claim_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claimId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 200
+    },
+    "locator": {
+      "description": "Precise location of the evidence inside the referenced source. Exactly one locator type must be used.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/lineRangeLocator"
+        },
+        {
+          "$ref": "#/$defs/pageRangeLocator"
+        },
+        {
+          "$ref": "#/$defs/timeRangeLocator"
+        },
+        {
+          "$ref": "#/$defs/sectionLocator"
+        },
+        {
+          "$ref": "#/$defs/jsonPointerLocator"
+        },
+        {
+          "$ref": "#/$defs/recordLocator"
+        },
+        {
+          "$ref": "#/$defs/textQuoteLocator"
+        },
+        {
+          "$ref": "#/$defs/fragmentLocator"
+        }
+      ]
+    },
+    "excerpt": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000,
+      "description": "Optional short excerpt for verification. Implementations must respect copyright, licensing and privacy restrictions."
+    },
+    "excerpt_language": {
+      "$ref": "#/$defs/languageTag"
+    },
+    "excerpt_hash": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "SHA-256 hash of the exact normalized evidence excerpt."
+    },
+    "context_before": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "context_after": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Time at which this evidence location was captured."
+    },
+    "valid_from": {
+      "$ref": "#/$defs/dateOrDateTime"
+    },
+    "valid_until": {
+      "$ref": "#/$defs/dateOrDateTime"
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "method"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "unverified",
+            "located",
+            "content-matched",
+            "automatically-verified",
+            "human-reviewed",
+            "unavailable",
+            "mismatch",
+            "disputed"
+          ]
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "exact-hash",
+            "text-match",
+            "structured-lookup",
+            "automated",
+            "human-review",
+            "automated-and-human"
+          ]
+        },
+        "verified_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "verifier": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 200
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "content-matched",
+                  "automatically-verified",
+                  "human-reviewed"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "verified_at"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "human-reviewed"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "verifier"
+            ],
+            "properties": {
+              "method": {
+                "enum": [
+                  "human-review",
+                  "automated-and-human"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "automatically-verified"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "method": {
+                "enum": [
+                  "exact-hash",
+                  "text-match",
+                  "structured-lookup",
+                  "automated",
+                  "automated-and-human"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "rights": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "excerpt_allowed": {
+          "type": "boolean"
+        },
+        "redistribution_allowed": {
+          "type": "boolean"
+        },
+        "contains_personal_data": {
+          "type": "boolean"
+        },
+        "contains_sensitive_data": {
+          "type": "boolean"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "superseded",
+        "withdrawn",
+        "unavailable",
+        "disputed"
+      ],
+      "default": "active"
+    },
+    "superseded_by": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidenceId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 100
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 3000
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Namespaced extension data using reverse-DNS keys.",
+      "propertyNames": {
+        "pattern": "^[a-z0-9]+(?:\\.[a-z0-9-]+)+$"
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "excerpt_language"
+        ]
+      },
+      "then": {
+        "required": [
+          "excerpt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "excerpt_hash"
+        ]
+      },
+      "then": {
+        "required": [
+          "excerpt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "superseded"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "superseded_by"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verification": {
+            "properties": {
+              "method": {
+                "const": "exact-hash"
+              }
+            },
+            "required": [
+              "method"
+            ]
+          }
+        },
+        "required": [
+          "verification"
+        ]
+      },
+      "then": {
+        "required": [
+          "excerpt_hash"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "claimId": {
+      "type": "string",
+      "pattern": "^claim:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "sourceId": {
+      "type": "string",
+      "pattern": "^source:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "evidenceId": {
+      "type": "string",
+      "pattern": "^evidence:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "languageTag": {
+      "type": "string",
+      "pattern": "^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$",
+      "description": "BCP 47-style language tag."
+    },
+    "dateOrDateTime": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "string",
+          "format": "date-time"
+        }
+      ]
+    },
+    "lineRangeLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "start_line"
+      ],
+      "properties": {
+        "type": {
+          "const": "line-range"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "start_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_line": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "pageRangeLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "start_page"
+      ],
+      "properties": {
+        "type": {
+          "const": "page-range"
+        },
+        "start_page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "section": {
+          "type": "string",
+          "maxLength": 500
+        }
+      }
+    },
+    "timeRangeLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "start_seconds"
+      ],
+      "properties": {
+        "type": {
+          "const": "time-range"
+        },
+        "start_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "end_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "track": {
+          "type": "string",
+          "maxLength": 200
+        }
+      }
+    },
+    "sectionLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "section"
+      ],
+      "properties": {
+        "type": {
+          "const": "section"
+        },
+        "section": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "subsection": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "anchor": {
+          "type": "string",
+          "maxLength": 500
+        }
+      }
+    },
+    "jsonPointerLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "pointer"
+      ],
+      "properties": {
+        "type": {
+          "const": "json-pointer"
+        },
+        "pointer": {
+          "type": "string",
+          "pattern": "^(?:/(?:[^~/]|~0|~1)*)*$",
+          "maxLength": 2000
+        }
+      }
+    },
+    "recordLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "collection",
+        "record_id"
+      ],
+      "properties": {
+        "type": {
+          "const": "record"
+        },
+        "collection": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "record_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "field": {
+          "type": "string",
+          "maxLength": 300
+        }
+      }
+    },
+    "textQuoteLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "exact"
+      ],
+      "properties": {
+        "type": {
+          "const": "text-quote"
+        },
+        "exact": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "prefix": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "suffix": {
+          "type": "string",
+          "maxLength": 500
+        }
+      }
+    },
+    "fragmentLocator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "fragment"
+      ],
+      "properties": {
+        "type": {
+          "const": "fragment"
+        },
+        "fragment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "scheme": {
+          "type": "string",
+          "enum": [
+            "uri-fragment",
+            "css-selector",
+            "xpath",
+            "media-fragment",
+            "custom"
+          ]
+        }
+      }
+    }
+  }
+}
