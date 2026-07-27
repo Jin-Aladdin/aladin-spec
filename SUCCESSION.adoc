@@ -54,10 +54,11 @@ Honest assessment as of the draft `0.1.0` specification series.
 | Nothing to rotate, nothing to lose. This part is already correct.
 
 | Published artifacts
-| `v0.1.0`, published 2026-07-27
-| Six assets with checksums and a build attestation. From here on a defective
-  release must be recalled rather than deleted, and the `0.1.0` schemas are
-  frozen: further changes belong to the next version (ADR-0006).
+| `v0.1.0`, `v0.2.0` and `v0.2.1`, all 2026-07-27
+| Each release carries checksums and a build attestation. A defective release
+  must be recalled rather than deleted. Schemas are frozen per tag: the
+  identifiers published at `v0.2.0` name those documents permanently, and
+  further schema changes belong to the next version (ADR-0006).
 
 | Backup bundles
 | Automated, monthly

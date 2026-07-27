@@ -218,9 +218,12 @@ status.
 
 == Supported Versions
 
-The specification is Pre-Alpha at `0.1.0-draft`. There is no released version
-under long-term support and no security backport commitment yet. Fixes land on
-`main`.
+The specification is Pre-Alpha in the `0.2.x` draft series. The latest release
+is `v0.2.1`.
+
+No version is under long-term support and there is no backport commitment. A
+security fix lands on `main` and is released as a new version; earlier tags are
+not patched. Anything pinning an older tag has to move forward to receive it.
 
 == Disclosure
 
