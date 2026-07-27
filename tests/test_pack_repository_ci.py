@@ -224,3 +224,61 @@ def test_workflows_check_out_the_pack_into_its_own_directory():
             paths = [step.get("with", {}).get("path") for step in checkouts]
             assert all(paths), f"{name} has two checkouts and at least one has no path"
             assert len(set(paths)) == len(paths), f"{name} checks out twice into the same path"
+
+
+# ---------------------------------------------------------------------------
+# Build tooling is repository content, not pack content
+# ---------------------------------------------------------------------------
+
+
+def test_build_tooling_does_not_fail_the_security_gate(tmp_path):
+    """ADR-0003 permits data importers and conversion tools in a repository.
+
+    Found while building the first real pack: a data importer in scripts/
+    quarantined every candidate, because the scanner treated repository
+    tooling as pack content. The rule it was enforcing is about what reaches
+    a consumer, and the artifact builder already excludes these directories.
+    """
+    from security_scan import scan_pack
+
+    pack = tmp_path / "pack"
+    bootstrap.create_pack(
+        pack,
+        pack_id="aladdin-kb-tooling",
+        name="Tooling Test Pack",
+        description="Pack used to check that build tooling does not fail the gate.",
+        domain="tooling",
+    )
+    (pack / "scripts").mkdir()
+    (pack / "scripts" / "import_something.py").write_text(
+        "# a data importer, which ADR-0003 explicitly permits\n", encoding="utf-8"
+    )
+
+    findings = scan_pack(pack, pack)
+    assert findings == [], [str(f) for f in findings]
+
+
+def test_build_tooling_never_reaches_the_artifact(tmp_path):
+    """Permitted in the repository is not the same as shipped to a consumer."""
+    import zipfile
+
+    import build_artifact
+
+    pack = tmp_path / "pack"
+    bootstrap.create_pack(
+        pack,
+        pack_id="aladdin-kb-tooling",
+        name="Tooling Test Pack",
+        description="Pack used to check that build tooling stays out of artifacts.",
+        domain="tooling",
+    )
+    (pack / "scripts").mkdir()
+    (pack / "scripts" / "import_something.py").write_text("# importer\n", encoding="utf-8")
+
+    result = build_artifact.build(pack, tmp_path / "dist", source_commit="0" * 40)
+    with zipfile.ZipFile(result.archive) as archive:
+        names = archive.namelist()
+
+    assert not any(name.startswith("scripts/") for name in names)
+    assert not any(name.endswith(".py") for name in names)
+    assert any(name == "aladdin-pack.yml" for name in names)

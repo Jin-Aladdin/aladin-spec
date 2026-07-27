@@ -35,7 +35,18 @@ BUILDER_VERSION = "0.1.0"
 FIXED_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
 
 #: Directories that belong to the source repository, not to the artifact.
-EXCLUDED_DIRECTORIES = {".candidate", "quarantine", "upstream", "__pycache__"}
+#: Build tooling is permitted in a repository (ADR-0003) and must never reach
+#: a consumer, so it is excluded here rather than forbidden there.
+EXCLUDED_DIRECTORIES = {
+    ".candidate",
+    "quarantine",
+    "upstream",
+    "__pycache__",
+    "scripts",
+    "tools",
+    ".github",
+    ".git",
+}
 
 
 @dataclass(frozen=True)
