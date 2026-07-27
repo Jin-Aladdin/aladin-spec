@@ -1,0 +1,405 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jin-Aladdin/aladin-spec/blob/main/schemas/entity.schema.json",
+  "title": "Aladin Knowledge Entity",
+  "description": "Normative schema for a canonical entity record in an Aladin Knowledge Pack. An entity is a stable, reusable object that claims, relations, concepts and evidence can reference. An entity record establishes identity and provenance. It does not assert that statements about the entity are true.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "type",
+    "name",
+    "language",
+    "status",
+    "created_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^entity:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "minLength": 10,
+      "maxLength": 240,
+      "description": "Stable namespaced identifier beginning with entity:."
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "person",
+        "organization",
+        "software",
+        "technology",
+        "protocol",
+        "programming-language",
+        "operating-system",
+        "product",
+        "location",
+        "law",
+        "standard",
+        "scientific-concept",
+        "technical-concept",
+        "technical-component",
+        "dataset",
+        "event",
+        "document",
+        "other"
+      ],
+      "description": "Coarse entity classification. Finer domain classification belongs to concepts or to a namespaced extension."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "Canonical name of the entity in the declared language."
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 200,
+      "description": "Alternative names, abbreviations and spellings that denote the same entity."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "language": {
+      "$ref": "#/$defs/languageTag",
+      "description": "Language of the canonical name, aliases and description."
+    },
+    "external_ids": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scheme",
+          "value"
+        ],
+        "properties": {
+          "scheme": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$",
+            "minLength": 2,
+            "maxLength": 80,
+            "description": "Identifier system, for example wikidata, orcid, ror, cpe, purl or iso."
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048
+          }
+        }
+      },
+      "uniqueItems": true,
+      "maxItems": 50,
+      "description": "Identifiers of this entity in external identifier systems."
+    },
+    "urls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048
+          },
+          "rel": {
+            "type": "string",
+            "enum": [
+              "homepage",
+              "documentation",
+              "repository",
+              "specification",
+              "registry",
+              "profile",
+              "other"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        }
+      },
+      "uniqueItems": true,
+      "maxItems": 50,
+      "description": "Descriptive links. A link is a reference only and never grants permission to fetch or execute anything."
+    },
+    "source_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sourceId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 100
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidenceId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 500
+    },
+    "concept_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/conceptId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 200
+    },
+    "conflict_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/conflictId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 100
+    },
+    "provenance": {
+      "type": "string",
+      "enum": [
+        "unsourced",
+        "source-linked",
+        "source-backed",
+        "evidence-backed"
+      ],
+      "description": "How the identity of this entity is supported. Provenance describes the supporting material and is independent from the lifecycle status and from any confidence value."
+    },
+    "valid_from": {
+      "$ref": "#/$defs/dateOrDateTime",
+      "description": "Start of the period in which this entity description applies."
+    },
+    "valid_until": {
+      "$ref": "#/$defs/dateOrDateTime",
+      "description": "End of the period in which this entity description applies."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "provisional",
+        "disputed",
+        "merged",
+        "deprecated",
+        "invalidated"
+      ],
+      "description": "Lifecycle state of the entity record."
+    },
+    "merged_into": {
+      "$ref": "#/$defs/entityId",
+      "description": "Entity that replaces this record after duplicate resolution. Required when the status is merged."
+    },
+    "merged_from": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entityId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 100,
+      "description": "Entities that were merged into this record. The original identifiers are preserved so earlier references remain traceable."
+    },
+    "successor_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entityId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 100,
+      "description": "Entities that continue or replace this one, for example after a rename or a project split."
+    },
+    "invalidation_reason": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 2000,
+      "description": "Reason why this entity record must no longer be used. Required when the status is invalidated."
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 3000
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Namespaced extension data using reverse-DNS keys. Extensions must not redefine the meaning of core fields.",
+      "propertyNames": {
+        "pattern": "^[a-z0-9]+(?:\\.[a-z0-9-]+)+$"
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "merged"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "merged_into"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "invalidated"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "invalidation_reason"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "disputed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "anyOf": [
+          {
+            "required": [
+              "conflict_ids"
+            ]
+          },
+          {
+            "required": [
+              "notes"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "provenance": {
+            "enum": [
+              "source-linked",
+              "source-backed"
+            ]
+          }
+        },
+        "required": [
+          "provenance"
+        ]
+      },
+      "then": {
+        "required": [
+          "source_ids"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "provenance": {
+            "const": "evidence-backed"
+          }
+        },
+        "required": [
+          "provenance"
+        ]
+      },
+      "then": {
+        "required": [
+          "evidence_ids"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "languageTag": {
+      "type": "string",
+      "pattern": "^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$",
+      "description": "BCP 47-style language tag."
+    },
+    "dateOrDateTime": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "string",
+          "format": "date-time"
+        }
+      ]
+    },
+    "entityId": {
+      "type": "string",
+      "pattern": "^entity:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "sourceId": {
+      "type": "string",
+      "pattern": "^source:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "evidenceId": {
+      "type": "string",
+      "pattern": "^evidence:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "conceptId": {
+      "type": "string",
+      "pattern": "^concept:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "conflictId": {
+      "type": "string",
+      "pattern": "^conflict:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    }
+  }
+}
