@@ -150,6 +150,63 @@ def test_an_empty_threshold_set_produces_no_findings():
     assert sentinel_check.evaluate(observation(), {"require_enabled_workflows": False}, NOW) == []
 
 
+def test_omitting_a_threshold_does_not_escape_an_inherited_default():
+    """Leaving it out inherits the default. That is what a default is for.
+
+    Found in production: the sentinel reported itself for a validation run it
+    never performs, because the repository entry omitted the threshold while
+    the inventory default still declared one.
+    """
+    merged = sentinel_check.thresholds_for({}, {"validation_max_age_days": 45})
+    assert merged["validation_max_age_days"] == 45
+
+    findings = sentinel_check.evaluate(
+        observation(last_validation_at=None), merged, NOW
+    )
+    assert any(f.check == "validation-age" for f in findings)
+
+
+def test_a_null_threshold_switches_off_an_inherited_default():
+    """Explicit null is how a repository declines a check that does not apply."""
+    merged = sentinel_check.thresholds_for(
+        {"thresholds": {"validation_max_age_days": None}}, {"validation_max_age_days": 45}
+    )
+    assert merged["validation_max_age_days"] is None
+
+    findings = sentinel_check.evaluate(
+        observation(last_validation_at=None), merged, NOW
+    )
+    assert not any(f.check == "validation-age" for f in findings)
+
+
+def test_a_null_threshold_leaves_other_checks_alone():
+    merged = sentinel_check.thresholds_for(
+        {"thresholds": {"validation_max_age_days": None}},
+        {"validation_max_age_days": 45, "commit_max_age_days": 30},
+    )
+    findings = sentinel_check.evaluate(
+        observation(last_validation_at=None, last_commit_at=days_ago(90)), merged, NOW
+    )
+    assert not any(f.check == "validation-age" for f in findings)
+    assert any(f.check == "commit-age" for f in findings)
+
+
+def test_schema_accepts_a_null_threshold(inventory_schema):
+    inventory = {
+        "inventory_version": "0.1.0",
+        "defaults": {"validation_max_age_days": 45},
+        "repositories": [
+            {
+                "repository": "example/repo",
+                "role": "sentinel",
+                "thresholds": {"validation_max_age_days": None},
+            }
+        ],
+    }
+    errors = list(Draft202012Validator(inventory_schema).iter_errors(inventory))
+    assert errors == [], [e.message for e in errors]
+
+
 # ---------------------------------------------------------------------------
 # The failure the sentinel exists for
 # ---------------------------------------------------------------------------
@@ -321,10 +378,32 @@ def test_template_workflow_is_not_scheduled_at_minute_zero():
 
 
 def test_template_pins_the_specification_tooling():
-    """An unpinned reference means an upstream change alters the watcher."""
+    """An unpinned reference means an upstream change alters the watcher.
+
+    A tag or a commit both qualify. A commit is the stricter of the two, since
+    a tag can be moved, and it is the right choice when the tooling needed is
+    newer than the latest release.
+    """
+    import re
+
     text = (TEMPLATE / ".github" / "workflows" / "sentinel.yml").read_text(encoding="utf-8")
-    assert "ref: v0.1.0" in text
-    assert "ref: main" not in text
+    refs = re.findall(r"^\s*ref:\s*(\S+)\s*$", text, flags=re.MULTILINE)
+    assert refs, "the template checks out the tooling without pinning a ref"
+    for ref in refs:
+        immutable = re.fullmatch(r"v\d+\.\d+\.\d+", ref) or re.fullmatch(r"[0-9a-f]{40}", ref)
+        assert immutable, f"ref {ref!r} is not immutable; use a release tag or a commit SHA"
+
+
+def test_template_creates_the_label_before_using_it():
+    """A fresh repository has no labels.
+
+    Found in production: the first real run produced a report, uploaded it,
+    then discarded it because the label did not exist yet.
+    """
+    text = (TEMPLATE / ".github" / "workflows" / "sentinel.yml").read_text(encoding="utf-8")
+    create = text.index("gh label create sentinel")
+    use = text.index("gh issue list --state open --label sentinel")
+    assert create < use, "the label must be created before it is used"
 
 
 def test_loader_rejects_an_empty_inventory(tmp_path):

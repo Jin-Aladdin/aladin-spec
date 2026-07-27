@@ -114,30 +114,22 @@
     "thresholds": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Ages after which silence becomes a finding. Every threshold is optional: a check with no threshold is not performed, which is how a repository opts out of a check that does not apply to it.",
+      "description": "Ages after which silence becomes a finding. A threshold that is absent at every level is not checked, which is how a repository opts out of a check that does not apply to it. Omitting a threshold on a repository is not enough when a default declares it: the default still applies. To switch off an inherited default, set the threshold to null explicitly.",
       "properties": {
         "validation_max_age_days": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 3650,
-          "description": "Age of the last successful validation run."
+          "$ref": "#/$defs/ageThreshold",
+          "description": "Age of the last successful validation run. Set to null to opt out where no validation workflow exists."
         },
         "update_max_age_days": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 3650,
+          "$ref": "#/$defs/ageThreshold",
           "description": "Age of the last successful knowledge update run."
         },
         "release_max_age_days": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 3650,
+          "$ref": "#/$defs/ageThreshold",
           "description": "Age of the most recent release."
         },
         "commit_max_age_days": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 3650,
+          "$ref": "#/$defs/ageThreshold",
           "description": "Age of the newest commit. Prolonged inactivity is what causes a platform to disable scheduled workflows, so this is the leading indicator of coming silence."
         },
         "require_enabled_workflows": {
@@ -146,6 +138,15 @@
           "description": "Report a scheduled workflow that the platform has disabled."
         }
       }
+    },
+    "ageThreshold": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "maximum": 3650,
+      "description": "Maximum acceptable age in days, or null to disable this check and override any inherited default."
     }
   }
 }

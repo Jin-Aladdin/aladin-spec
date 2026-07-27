@@ -95,6 +95,14 @@ def _age_in_days(timestamp: str | None, now: datetime) -> int | None:
 
 
 def thresholds_for(entry: dict, defaults: dict) -> dict:
+    """Merge repository thresholds over the inventory defaults.
+
+    Omitting a threshold on a repository does not disable it when a default
+    declares one: the default still applies, which is the point of a default.
+    Setting it to ``null`` switches the check off for that repository, which
+    is how a repository declines a check that does not apply to it, for
+    example a validation age where no validation workflow exists.
+    """
     merged = dict(defaults or {})
     merged.update(entry.get("thresholds") or {})
     return merged
