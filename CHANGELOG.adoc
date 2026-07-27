@@ -10,6 +10,23 @@ The specification follows Semantic Versioning. While the series is `0.x`,
 breaking changes are possible between minor versions and every one of them is
 announced in this file.
 
+== Unreleased
+
+=== Added
+
+* `scripts/backup_bundle.py` and `.github/workflows/backup-mirror.yml`: a
+  monthly verified git bundle carrying full history, branches and tags, plus an
+  optional push to an independent remote. The bundle restores with `git clone`
+  alone, and every bundle is cloned and compared against the source before it
+  is accepted, because a backup nobody restored is a belief rather than a
+  backup.
+* `templates/sentinel-repository/` and `scripts/sentinel_check.py`: the watcher
+  that observes other repositories from outside, since a repository whose
+  scheduled workflows were disabled cannot report its own silence.
+* `schemas/sentinel-inventory.schema.json`: the inventory a sentinel watches,
+  with per-repository thresholds. An undeclared threshold is not checked, which
+  is how a repository opts out of a check that does not apply to it.
+
 == 0.1.0, 2026-07-27
 
 First tagged draft. Tagging makes every schema identifier resolve, since the

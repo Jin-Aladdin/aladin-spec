@@ -59,9 +59,17 @@ Honest assessment as of the draft `0.1.0` specification series.
   release must be recalled rather than deleted, and the `0.1.0` schemas are
   frozen: further changes belong to the next version (ADR-0006).
 
-| Mirrors
-| None
-| A GitHub outage or account loss has no fallback.
+| Backup bundles
+| Automated, monthly
+| A verified git bundle with full history and tags is produced and retained.
+  It restores with `git clone` alone, so recovery does not depend on any
+  hosting provider.
+
+| Independent mirror
+| Not configured
+| The backup workflow pushes to a second remote when `MIRROR_REMOTE_URL` is
+  set. Until it is, the bundles are the fallback and they live on the same
+  provider as everything else.
 
 | Documented recovery
 | Yes, in this document and in the repository template
@@ -152,19 +160,70 @@ rotation interval. A secret without an owner is an orphan by construction.
 
 == Backup and Mirroring
 
-Not yet in place. The intended targets, any of which must be replaceable:
+Partly in place.
+
+=== What Exists
+
+`backup-mirror.yml` runs monthly and on dispatch. It produces a git bundle
+containing the full history, every branch and every tag, then proves the bundle
+is usable by cloning it and comparing the restored tags and HEAD against the
+source. A backup nobody restored is a belief, not a backup.
+
+The bundle is a complete repository in one file. `git clone backup.bundle`
+reconstructs everything with no network and no hosting provider, which is what
+makes it a recovery path rather than a second copy that fails at the same time
+as the first.
+
+=== What Is Missing
+
+No independent remote is configured. Set the repository secret
+`MIRROR_REMOTE_URL` to a push URL on a different host and the workflow starts
+mirroring; without it, the step is skipped and the bundle is still produced.
+
+The mirror push uses `--all --tags` and never `--force` or `--mirror`. A mirror
+push propagates deletions and rewrites, so a mistake or a compromise at the
+origin would destroy the backup along with it. A backup that can be erased from
+the thing it backs up is not a backup.
+
+=== Remaining Targets
+
+Any of these must be substitutable, and none may become mandatory:
 
 * a second git remote on an independent host
 * S3-compatible object storage for release bundles
-* archived release bundles with checksums
 * an independent registry
 * an institutional or academic mirror
 
 What must be covered: git history, tags, releases, artifacts, schemas, pack
 manifests, provenance data, registry metadata and automation configuration.
 
-The open standard must not depend on a single provider. Until a mirror exists,
-GitHub availability is a real dependency and is listed as such.
+Until an independent remote exists, the bundles live on the same provider as
+everything else, so GitHub availability remains a real dependency.
+
+== Sentinel
+
+`templates/sentinel-repository/` contains the watcher, ready to copy into its
+own repository.
+
+A repository cannot reliably report its own silence: when a platform disables
+its scheduled workflows after prolonged inactivity, the heartbeat that would
+have noticed is disabled with them, and the repository then looks healthy in
+the only way it can still report, by saying nothing. The observer has to live
+somewhere the failure does not reach.
+
+The sentinel reads commit age, validation age, update age, release age,
+disabled workflows and reachability, and reports. It never edits knowledge
+content, never merges and never publishes. The strongest action it can take is
+`repository_dispatch`: asking a repository to run a workflow that repository
+already declared, which still runs its own gates.
+
+It has the same weakness one level up: it can go quiet too. That is an accepted
+and documented limit, mitigated by keeping it small and by having it watch its
+own repository.
+
+The template is not yet deployed. Deploying it needs a repository, ideally in
+the organization rather than under a personal account, since a sentinel bound
+to one person inherits exactly the succession problem it is meant to reduce.
 
 == Handover Procedure
 
@@ -232,12 +291,16 @@ Stated plainly, because an unstated risk is an unmanaged one:
 
 . One personal account owns the canonical repository.
 . No organization and no second owner exist.
-. No mirror exists; GitHub availability is a hard dependency today.
+. No independent mirror is configured. Verified backup bundles exist, but they
+  are retained on the same provider, so a provider-level loss takes both.
 . Knowledge Pack repositories built from the template check out this
   repository for their tooling. The template documents vendoring as the
   mitigation, but the dependency is real until they pin and vendor.
-. No sentinel repository exists yet, so nothing observes a repository whose
-  automation went silent.
-. The `0.1.0` specification is a draft. Nothing about it is frozen.
+. The sentinel exists as a template and is not deployed, so nothing yet
+  observes a repository whose automation went silent.
+. Nothing watches the sentinel. That regress has to stop somewhere, and it
+  stops here deliberately rather than by oversight.
+. The `0.1.0` specification is a draft. Only its schema identifiers are fixed,
+  by the tag; nothing about its content is frozen.
 
 Each of these is tracked as a gap rather than described as solved.

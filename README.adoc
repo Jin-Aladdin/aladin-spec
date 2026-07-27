@@ -341,13 +341,13 @@ aladdin-spec/
 ├── SECURITY.adoc
 ├── SUCCESSION.adoc
 ├── requirements-dev.txt
-├── .github/workflows/     validate, release, automation health, manual recovery
+├── .github/workflows/     validate, release, integration, health, recovery, backup
 ├── automation/            health report for this repository
 ├── decisions/             ADR-0001 to ADR-0005
 ├── schemas/               manifest, canonical objects, update policy, artifact
 ├── specifications/        automation-v1
 ├── examples/              minimal pack, automated pack
-├── templates/             Knowledge Pack repository template
+├── templates/             Knowledge Pack repository, sentinel repository
 ├── scripts/               validator, gates, update engine, artifact builder
 └── tests/                 positive and negative coverage
 ----
@@ -592,11 +592,15 @@ Third-party datasets, documents and knowledge sources used by future Knowledge P
 | `static-file` and `json-api` implemented. The remaining seven are declared
   and fail closed.
 
+| Backup and mirroring
+| Verified git bundles, monthly. An independent mirror is optional and not yet
+  configured.
+
 | Registry protocol
 | Not started
 
 | Sentinel repository
-| Not started
+| Available as a template, not yet deployed
 
 | Published release
 | `v0.1.0` draft, 2026-07-27. Schema identifiers resolve against this tag.
