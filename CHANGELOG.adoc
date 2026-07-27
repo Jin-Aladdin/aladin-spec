@@ -10,6 +10,23 @@ The specification follows Semantic Versioning. While the series is `0.x`,
 breaking changes are possible between minor versions and every one of them is
 announced in this file.
 
+== Unreleased
+
+=== Fixed
+
+* The update workflow tried to open a pull request even when the engine had
+  reported no change, failing on a branch that was never created and turning a
+  correct run red. The step is now guarded by the engine outcome, so only a
+  ready candidate becomes a pull request; an unchanged source, a quarantined
+  candidate and a rate limit each end the run quietly, as they should.
+
+=== Added
+
+* `CREATING-A-KNOWLEDGE-PACK.adoc` documents the repository setting that
+  allows Actions to open pull requests. A repository refuses this by default,
+  so the first candidate a pack produces fails at the last step with a message
+  that says nothing about the pack.
+
 == 0.2.3, 2026-07-27
 
 A patch so a pack repository with ordinary repository files passes its own
