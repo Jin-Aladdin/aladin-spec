@@ -10,7 +10,10 @@ The specification follows Semantic Versioning. While the series is `0.x`,
 breaking changes are possible between minor versions and every one of them is
 announced in this file.
 
-== Unreleased
+== 0.2.2, 2026-07-27
+
+A patch so a Knowledge Pack repository containing build tooling can run its
+automation. No schema changed, so the `0.2.0` identifiers remain correct.
 
 === Fixed
 
