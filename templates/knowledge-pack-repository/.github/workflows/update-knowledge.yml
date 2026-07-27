@@ -60,6 +60,7 @@ jobs:
           python .aladdin-spec/scripts/update_engine.py \
             --root pack \
             --pack pack \
+            --schemas .aladdin-spec/schemas \
             --trigger "${{ github.event_name }}" \
             --run-id "${{ github.run_id }}" \
             --apply | tee -a "$GITHUB_STEP_SUMMARY"

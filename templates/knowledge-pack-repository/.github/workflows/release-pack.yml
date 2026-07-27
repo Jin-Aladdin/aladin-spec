@@ -51,7 +51,7 @@ jobs:
           python -m pip install -r .aladdin-spec/requirements-dev.txt
 
       - name: Validate
-        run: python .aladdin-spec/scripts/validate.py --root pack --pack pack
+        run: python .aladdin-spec/scripts/validate.py --root pack --pack pack --schemas .aladdin-spec/schemas
 
       - name: Security gate
         run: python .aladdin-spec/scripts/security_scan.py --root pack --pack pack

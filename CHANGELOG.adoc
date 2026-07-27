@@ -113,6 +113,18 @@ The `0.1.0` schemas are now frozen. Further changes belong to the next version.
   and `SUCCESSION.adoc`.
 * Workflows for validation, release, automation health and manual recovery.
 
+=== Fixed
+
+* The Knowledge Pack template invoked the validator and the update engine
+  without telling them where the schemas are. Both look in `<root>/schemas`
+  by default, and in a pack repository the root is the pack while the schemas
+  come from the pinned specification checkout. Every generated repository
+  would have had a red pipeline on its first push, reporting every record as
+  unvalidatable when the pack was in fact fine. `update_engine.py` gained a
+  `--schemas` option, the template workflows now pass the path, and tests
+  reconstruct the two-checkout layout and run the exact commands the
+  workflows run.
+
 === Changed
 
 * The Knowledge Pack template pinned its tooling to `ref: main` in all five
