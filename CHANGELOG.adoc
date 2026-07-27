@@ -10,7 +10,9 @@ The specification follows Semantic Versioning. While the series is `0.x`,
 breaking changes are possible between minor versions and every one of them is
 announced in this file.
 
-== Unreleased
+== 0.2.4, 2026-07-27
+
+A patch so a no-change update run stays green. No schema changed.
 
 === Fixed
 
