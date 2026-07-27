@@ -1,0 +1,17 @@
+{
+  "id": "evidence:aladin.spec.readme.knowledge-pack-definition.001",
+  "source_id": "source:aladin.spec.readme",
+  "claim_ids": [
+    "claim:aladin.knowledge-pack.artifact.001"
+  ],
+  "locator": {
+    "type": "section",
+    "section": "What Is a Knowledge Pack?"
+  },
+  "captured_at": "2026-07-27T00:00:00Z",
+  "verification": {
+    "status": "located",
+    "method": "manual"
+  },
+  "status": "active"
+}
