@@ -677,6 +677,7 @@ def run_update(
     *,
     root: Path = REPOSITORY_ROOT,
     schemas: dict | None = None,
+    schemas_dir: Path | None = None,
     trigger: str = "manual",
     now: str | None = None,
     run_id: str = "local",
@@ -685,15 +686,23 @@ def run_update(
 ) -> RunResult:
     """Execute one update run for one pack.
 
+    ``schemas_dir`` separates where the rules live from where the pack lives.
+    A Knowledge Pack repository holds data and policy; the schemas come from
+    a pinned checkout of the specification repository, so the two paths are
+    not the same and cannot be derived from each other.
+
     ``adapter_options`` is passed straight to the adapter and exists so tests
     can point a network adapter at a local mock server. It is never populated
     from pack or policy content.
     """
     now = now or _utc_now()
     if schemas is None:
-        schemas, schema_findings = validate.load_schemas(root / "schemas", root)
+        schemas, schema_findings = validate.load_schemas(schemas_dir or root / "schemas", root)
         if schema_findings:
-            raise UpdateError("schema directory is not clean")
+            raise UpdateError(
+                "schema directory is not clean: "
+                + "; ".join(str(f) for f in schema_findings[:3])
+            )
 
     policy = load_policy(pack_dir, schemas, root)
     policy_version = policy.get("policy_version", "unknown")
@@ -991,6 +1000,17 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--root", type=Path, default=REPOSITORY_ROOT)
     parser.add_argument("--pack", type=Path, required=True)
+    parser.add_argument(
+        "--schemas",
+        type=Path,
+        default=None,
+        help=(
+            "schema directory; defaults to <root>/schemas. A Knowledge Pack "
+            "repository holds data and policy, while the schemas come from a "
+            "pinned checkout of the specification repository, so the two paths "
+            "differ there"
+        ),
+    )
     parser.add_argument("--trigger", default="manual")
     parser.add_argument("--run-id", default="local")
     parser.add_argument(
@@ -1004,6 +1024,7 @@ def main(argv: list[str] | None = None) -> int:
         result = run_update(
             args.pack,
             root=args.root,
+            schemas_dir=args.schemas,
             trigger=args.trigger,
             run_id=args.run_id,
             apply_state=args.apply,

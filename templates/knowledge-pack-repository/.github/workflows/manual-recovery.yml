@@ -56,7 +56,7 @@ jobs:
       - name: Run all gates
         if: inputs.action == 'run-all-gates'
         run: |
-          python .aladdin-spec/scripts/validate.py --root pack --pack pack
+          python .aladdin-spec/scripts/validate.py --root pack --pack pack --schemas .aladdin-spec/schemas
           python .aladdin-spec/scripts/security_scan.py --root pack --pack pack
 
       - name: List quarantined candidates
@@ -74,7 +74,7 @@ jobs:
       - name: Dry-run the update engine
         if: inputs.action == 'dry-run-update'
         run: |
-          python .aladdin-spec/scripts/update_engine.py --root pack --pack pack \
+          python .aladdin-spec/scripts/update_engine.py --root pack --pack pack --schemas .aladdin-spec/schemas \
             | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Rebuild artifact
