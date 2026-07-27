@@ -1,0 +1,82 @@
+name: Automation health
+
+on:
+  schedule:
+    - cron: "41 5 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automation-health
+  cancel-in-progress: false
+
+jobs:
+  health:
+    name: Heartbeat
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          path: pack
+          fetch-depth: 0
+
+      - name: Check out the Aladdin specification tooling
+        uses: actions/checkout@v4
+        with:
+          repository: Jin-Aladdin/aladdin-spec
+          # Pin to an immutable ref before relying on this in production.
+          ref: main
+          path: .aladdin-spec
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install validator dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r .aladdin-spec/requirements-dev.txt
+
+      - name: Write health report
+        id: report
+        run: |
+          set +e
+          python .aladdin-spec/scripts/validate.py --root pack --pack pack > /dev/null 2>&1
+          validate=$([ $? -eq 0 ] && echo pass || echo fail)
+          python .aladdin-spec/scripts/automation_health.py \
+            --root pack --check validate=$validate --fail-when-stale
+          echo "stale=$([ $? -eq 0 ] && echo false || echo true)" >> "$GITHUB_OUTPUT"
+          cat pack/automation/health.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit heartbeat
+        working-directory: pack
+        run: |
+          # Automation metadata only. Never knowledge content.
+          if git diff --quiet -- automation/health.json; then
+            exit 0
+          fi
+          git config user.name "aladdin-automation[bot]"
+          git config user.email "aladdin-automation[bot]@users.noreply.github.com"
+          git add automation/health.json
+          git commit -m "chore(automation): update health report [skip ci]"
+          git push
+
+      - name: Raise an issue when automation is stale
+        if: steps.report.outputs.stale == 'true'
+        working-directory: pack
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "Automation health: attention required" \
+            --label automation-health \
+            --body-file automation/health.json

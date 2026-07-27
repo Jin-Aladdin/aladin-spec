@@ -1,0 +1,112 @@
+name: Release pack
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to publish
+        required: true
+        type: string
+  repository_dispatch:
+    types:
+      - aladdin-release
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.version || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  gates:
+    name: Release gates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          path: pack
+
+      - name: Check out the Aladdin specification tooling
+        uses: actions/checkout@v4
+        with:
+          repository: Jin-Aladdin/aladdin-spec
+          # Pin to an immutable ref before relying on this in production.
+          ref: main
+          path: .aladdin-spec
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install validator dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r .aladdin-spec/requirements-dev.txt
+
+      - name: Validate
+        run: python .aladdin-spec/scripts/validate.py --root pack --pack pack
+
+      - name: Security gate
+        run: python .aladdin-spec/scripts/security_scan.py --root pack --pack pack
+
+  publish:
+    name: Build and publish
+    needs: gates
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          path: pack
+
+      - name: Check out the Aladdin specification tooling
+        uses: actions/checkout@v4
+        with:
+          repository: Jin-Aladdin/aladdin-spec
+          # Pin to an immutable ref before relying on this in production.
+          ref: main
+          path: .aladdin-spec
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install validator dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r .aladdin-spec/requirements-dev.txt
+
+      - name: Build immutable artifact
+        run: |
+          python .aladdin-spec/scripts/build_artifact.py \
+            --pack pack \
+            --out dist \
+            --source-commit "${{ github.sha }}" \
+            --built-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          cd dist && sha256sum *.zip > SHA256SUMS
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/*.zip
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          files: |
+            dist/*.zip
+            dist/*.provenance.json
+            dist/SHA256SUMS
+          fail_on_unmatched_files: true

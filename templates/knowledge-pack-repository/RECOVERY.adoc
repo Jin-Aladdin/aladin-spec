@@ -1,0 +1,90 @@
+= Recovery Guide
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+
+This document exists for someone who did not build this repository: a
+successor, a colleague picking it up after a long gap, or the original
+maintainer after forgetting the details.
+
+It assumes no local tooling and no prior context.
+
+== First Question: Is Anything Broken?
+
+Run the *Manual recovery* workflow from the Actions tab with the action
+`run-all-gates`. It needs no inputs and no secrets.
+
+If it passes, the pack is valid and the knowledge base is intact, regardless of
+what the automation has or has not done recently.
+
+== Automation Stopped Running
+
+GitHub disables scheduled workflows after prolonged repository inactivity. This
+is the most likely cause of silence.
+
+. Open the Actions tab.
+. Re-enable any workflow marked as disabled.
+. Run *Automation health* manually once.
+. Confirm `automation/health.json` was updated.
+
+If the schedule keeps getting disabled, the repository is inactive enough that
+the monthly heartbeat commit is not landing. Check that the heartbeat job has
+`contents: write` and that no branch protection rule blocks it.
+
+== A Candidate Was Quarantined
+
+Quarantined candidates live in `automation/quarantine/<candidate-id>/` with a
+`quarantine.json` describing why.
+
+. Run *Manual recovery* with `list-quarantine`.
+. Read the reason.
+. Fix the underlying cause: a source that changed shape, a licensing change, a
+  broken record, a failed evaluation.
+. Delete the quarantine directory once the cause is resolved.
+
+A quarantined candidate never affected the published knowledge. The last valid
+version stayed active the whole time.
+
+== A Release Is Wrong
+
+. Mark the release as recalled in the repository's release notes.
+. Set the pack lifecycle status to `recalled` in `aladdin-pack.yml` and record
+  `recalled_at`.
+. Publish the previous known-good artifact again, or cut a new patch version
+  that corrects the defect.
+. Record the affected claims and sources.
+
+A recall never deletes history. The faulty artifact stays available for audit.
+
+== The Specification Repository Is Unreachable
+
+The workflows check out `Jin-Aladdin/aladdin-spec` for the validator, update
+engine and artifact builder. If that repository disappears or is renamed:
+
+. Copy `scripts/` and `schemas/` from any released `aladdin-spec` bundle into
+  this repository, for example under `vendor/aladdin-spec/`.
+. Change the workflow steps to call the vendored paths instead of
+  `.aladdin-spec/`.
+. Record in `MAINTAINERS.adoc` that the tooling is now vendored and at which
+  version.
+
+The pack data itself needs none of this. It is JSON Lines and YAML and can be
+read, audited and republished with any standard tooling.
+
+== Nobody Has Access Anymore
+
+This is an ownership problem, not a technical one. See `MAINTAINERS.adoc` and
+the succession documentation in the specification repository.
+
+The technical part is bounded: the pack content, its history, its releases and
+its audit trail are all in git. Any fork with the tooling can continue
+maintenance.
+
+== What Never to Do During Recovery
+
+* Do not delete knowledge content to make a gate pass.
+* Do not edit `automation/state.json` to hide a failure.
+* Do not rewrite audit records. Append a correcting record instead.
+* Do not raise `automation.level` to work around a failing gate.
+* Do not publish a release while any required gate is failing.

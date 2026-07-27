@@ -1,0 +1,14 @@
+{
+  "state_version": "0.1.0",
+  "pack_id": "aladdin-kb-template",
+  "last_valid_version": "0.1.0",
+  "last_run": {},
+  "sources": [],
+  "quarantine": [],
+  "counters": {
+    "runs": 0,
+    "candidates": 0,
+    "releases": 0,
+    "failures": 0
+  }
+}

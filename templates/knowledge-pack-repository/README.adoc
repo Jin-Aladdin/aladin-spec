@@ -1,0 +1,145 @@
+= Aladdin Knowledge Pack Repository Template
+Jin-Aladdin
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+
+Starting point for a new Aladdin Knowledge Pack repository.
+
+A new knowledge repository must never be created without an automation
+foundation (ADR-0005). This template provides that foundation: a valid
+manifest, a declared update policy that starts disabled, automation state, and
+the five workflows.
+
+== Structure
+
+[source,text]
+----
+knowledge-pack-repository/
+├── README.adoc
+├── SECURITY.adoc
+├── MAINTAINERS.adoc
+├── RECOVERY.adoc
+├── aladdin-pack.yml
+├── .github/
+│   └── workflows/
+│       ├── validate.yml
+│       ├── update-knowledge.yml
+│       ├── release-pack.yml
+│       ├── automation-health.yml
+│       └── manual-recovery.yml
+├── automation/
+│   ├── update-policy.yml
+│   └── state.json
+├── claims/
+│   └── claims.jsonl
+├── sources/
+│   └── sources.jsonl
+├── evidence/
+│   └── evidence.jsonl
+└── upstream/
+    └── example.json
+----
+
+== Safe Defaults
+
+The template is deliberately inert. Nothing runs until a maintainer has made a
+decision:
+
+[cols="1,1,2",options="header"]
+|===
+| Setting
+| Default
+| Why
+
+| `automation.enabled`
+| `false`
+| No retrieval happens until the sources have been reviewed.
+
+| `automation.level`
+| `detect`
+| Report only. Nothing is merged or published.
+
+| `sources[].enabled`
+| `false`
+| The template source is a placeholder, not a real source.
+
+| `sources[].risk_class`
+| `high`
+| Unassessed material is treated as high risk until judged otherwise.
+
+| `sources[].trust.level`
+| `unknown`
+| An unjudged source cannot be trusted by default.
+
+| `sources[].license.policy`
+| `unclear`
+| Unclear licensing forbids automatic publication.
+
+| `security.prompt_injection_reviewed`
+| `false`
+| Nobody has reviewed template content for injected instructions.
+|===
+
+Raising any of these is a deliberate act that a reviewer can see in the diff.
+
+== Setup
+
+. Copy this directory into a new repository.
+. Replace every value marked `replace-me` or `template` in `aladdin-pack.yml`,
+  `automation/update-policy.yml` and the record files.
+. Declare the real sources, each with its adapter, allowlist, license status,
+  trust level, risk class and limits.
+. Document origin, licensing and permitted reuse for every source before
+  enabling it.
+. Fill in `MAINTAINERS.adoc` with at least two people or roles.
+. Run the validation workflow and confirm it passes.
+. Only then set `automation.enabled` to `true`, and raise the level one step at
+  a time.
+
+== How the Workflows Find the Tooling
+
+The workflows check out `Jin-Aladdin/aladdin-spec` into `.aladdin-spec/` and run
+its validator, update engine and artifact builder. This keeps one implementation
+of the gates instead of a copy per repository.
+
+Two consequences to handle deliberately:
+
+Pin the reference:: Change `ref: main` to an immutable tag or commit SHA before
+relying on this in production. An unpinned reference means an upstream change
+can alter this repository's gates.
+
+Avoid a single point of failure:: The specification repository going away must
+not make this repository unmaintainable. `RECOVERY.adoc` documents how to vendor
+the tooling locally, and the pack itself stays fully inspectable with any JSON
+and YAML reader.
+
+== What This Template Does Not Do
+
+* It does not publish anything.
+* It does not merge anything automatically.
+* It does not fetch anything over the network; the only implemented adapter
+  reads a local fixture.
+* It does not grant automation any authority the update policy has not
+  explicitly declared.
+
+== Reference
+
+[cols="1,2",options="header"]
+|===
+| Document
+| Content
+
+| `decisions/ADR-0005-autonomous-knowledge-maintenance.adoc`
+| The binding rules for autonomous maintenance.
+
+| `specifications/automation-v1.adoc`
+| The normative automation specification.
+
+| `schemas/update-policy.schema.json`
+| The policy schema this repository validates against.
+
+| `examples/automated-pack/`
+| A working example of the automation layer.
+|===

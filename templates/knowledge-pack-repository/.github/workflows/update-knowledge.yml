@@ -1,0 +1,79 @@
+name: Update knowledge
+
+# Retrieval, change detection and candidate generation. This workflow never
+# publishes: promotion happens through a pull request and a release runs in a
+# separate workflow with separate gates (ADR-0005).
+on:
+  schedule:
+    - cron: "23 4 * * 2"
+  workflow_dispatch:
+  repository_dispatch:
+    types:
+      - aladdin-update
+
+permissions:
+  contents: read
+
+concurrency:
+  # A second run must never race the first one into the same candidate.
+  group: update-knowledge
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Detect and propose
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          path: pack
+
+      - name: Check out the Aladdin specification tooling
+        uses: actions/checkout@v4
+        with:
+          repository: Jin-Aladdin/aladdin-spec
+          # Pin to an immutable ref before relying on this in production.
+          ref: main
+          path: .aladdin-spec
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install validator dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r .aladdin-spec/requirements-dev.txt
+
+      - name: Run the update engine
+        run: |
+          python .aladdin-spec/scripts/update_engine.py \
+            --root pack \
+            --pack pack \
+            --trigger "${{ github.event_name }}" \
+            --run-id "${{ github.run_id }}" \
+            --apply | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Open a pull request for a ready candidate
+        uses: peter-evans/create-pull-request@v7
+        with:
+          path: pack
+          branch: automation/knowledge-update
+          title: "chore(knowledge): candidate update from declared sources"
+          commit-message: "chore(knowledge): candidate update from declared sources"
+          body: |
+            Automated candidate produced by the Aladdin update engine.
+
+            Every gate passed. Review the record diff and the audit trail in
+            `automation/audit/` before merging. Merging does not publish a
+            release; that is a separate workflow.
+          labels: automation, knowledge-update
+          delete-branch: true

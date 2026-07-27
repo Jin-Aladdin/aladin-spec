@@ -1,0 +1,51 @@
+name: Validate
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate pack
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          path: pack
+
+      - name: Check out the Aladdin specification tooling
+        uses: actions/checkout@v4
+        with:
+          repository: Jin-Aladdin/aladdin-spec
+          # Pin to an immutable ref before relying on this in production.
+          ref: main
+          path: .aladdin-spec
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install validator dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r .aladdin-spec/requirements-dev.txt
+
+      - name: Validate manifest, records and update policy
+        run: python .aladdin-spec/scripts/validate.py --root pack --pack pack
+
+      - name: Security gate
+        run: python .aladdin-spec/scripts/security_scan.py --root pack --pack pack

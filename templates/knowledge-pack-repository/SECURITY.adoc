@@ -1,0 +1,81 @@
+= Security Policy
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+
+== Reporting
+
+Do not report security issues as public issues.
+
+Use GitHub private vulnerability reporting, or contact the security contact
+listed in `MAINTAINERS.adoc`.
+
+Never include credentials, personal data, private keys or production secrets in
+an issue, a pull request, a record or an example.
+
+== Threat Model
+
+A Knowledge Pack repository fetches material it does not control and publishes
+material other systems will trust. The relevant threats are:
+
+[cols="1,2",options="header"]
+|===
+| Threat
+| Control
+
+| Knowledge poisoning through a compromised upstream source
+| Gates run before promotion; risk class caps automated authority; the last
+  valid version stays active when a gate fails.
+
+| Prompt injection inside retrieved content
+| Retrieved bytes are data. They never become instructions, tool permissions or
+  policy. Nothing retrieved is executed, imported or evaluated.
+
+| Supply-chain execution through pack content
+| ADR-0003: no runtime code in packs. The security gate rejects executable file
+  types, binary payloads and symbolic links inside a pack.
+
+| Path traversal through a declared path
+| Every declared path is checked for traversal, absolute paths and escapes
+  before it is read.
+
+| Resource exhaustion through an oversized or malicious source
+| Per-source and repository-wide limits on size, time, retries and file count.
+  Exceeding a limit is a gate failure.
+
+| License laundering through automation
+| A source with unclear licensing is capped at detect level and cannot be
+  published automatically.
+
+| Credential compromise
+| No personal access tokens. Workflow permissions are minimal and write access
+  exists only in the jobs that need it.
+
+| Silent tampering with published content
+| Artifacts are immutable, checksummed and attested. A content change requires
+  a new version.
+|===
+
+== What Automation May Never Do
+
+* Execute anything from a source or from pack content.
+* Publish a candidate that failed a required gate.
+* Publish content whose licensing is unclear.
+* Raise a confidence value to make an evaluation pass.
+* Invent a source or an evidence record.
+* Delete knowledge content to resolve a failure.
+* Rewrite an audit record.
+
+== Rotation and Compromise
+
+If a machine identity is suspected of compromise:
+
+. Revoke the credential immediately.
+. Disable the update and release workflows.
+. Review `automation/audit/` for decisions made in the affected window.
+. Verify the checksums of published artifacts against the release records.
+. Recall any artifact that cannot be verified.
+. Rotate the credential and re-enable the workflows one at a time.
+
+A recall does not delete history.

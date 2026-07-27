@@ -1,0 +1,87 @@
+= Maintainers
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+
+Replace every placeholder in this file before the repository is published.
+
+A repository with one maintainer and one personal access token has no
+succession path. ADR-0005 requires that automation keep working without the
+continuous presence of any one person.
+
+== Human Maintainers
+
+[cols="1,1,1,2",options="header"]
+|===
+| Name
+| GitHub
+| Role
+| Responsibility
+
+| Replace me
+| `replace-me`
+| owner
+| Final decision on scope, licensing and releases.
+
+| Replace me
+| `replace-me`
+| maintainer
+| Review of candidates, quarantine triage, gate changes.
+
+| Replace me
+| `replace-me`
+| security-contact
+| Security reports, key rotation, compromise response.
+|===
+
+At least two people or roles must be able to act. One is not a maintainer set;
+it is a single point of failure.
+
+== Machine Identities
+
+[cols="1,2,2",options="header"]
+|===
+| Identity
+| Used for
+| Scope
+
+| `GITHUB_TOKEN`
+| Validation, health reporting, candidate pull requests
+| Repository-scoped, issued per run, nothing to rotate.
+
+| Organization GitHub App
+| Cross-repository release and registry propagation
+| Replace with the app name once one exists.
+|===
+
+No personal access token belonging to an individual may be the permanent basis
+of this repository's automation.
+
+== Secret Inventory
+
+List secret *names* and their purpose here. Never list values.
+
+[cols="1,2,1",options="header"]
+|===
+| Secret name
+| Purpose
+| Rotation
+
+| _none_
+| This repository currently requires no secrets beyond the automatic
+  `GITHUB_TOKEN`.
+| n/a
+|===
+
+Adding a secret means adding a row here and a rotation owner.
+
+== Escalation
+
+. Automation failure: check `automation/health.json` and the open
+  `automation-health` issue.
+. Content dispute: open an issue, do not edit records silently.
+. Security concern: contact the security contact privately, see
+  `SECURITY.adoc`.
+. No maintainer reachable: see `RECOVERY.adoc` and the succession
+  documentation in the specification repository.

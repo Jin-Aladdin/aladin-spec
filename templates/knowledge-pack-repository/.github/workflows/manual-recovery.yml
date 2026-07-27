@@ -1,0 +1,81 @@
+name: Manual recovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Recovery action
+        required: true
+        type: choice
+        options:
+          - run-all-gates
+          - list-quarantine
+          - dry-run-update
+          - rebuild-artifact
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manual-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    name: ${{ inputs.action }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          path: pack
+          fetch-depth: 0
+
+      - name: Check out the Aladdin specification tooling
+        uses: actions/checkout@v4
+        with:
+          repository: Jin-Aladdin/aladdin-spec
+          # Pin to an immutable ref before relying on this in production.
+          ref: main
+          path: .aladdin-spec
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install validator dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r .aladdin-spec/requirements-dev.txt
+
+      - name: Run all gates
+        if: inputs.action == 'run-all-gates'
+        run: |
+          python .aladdin-spec/scripts/validate.py --root pack --pack pack
+          python .aladdin-spec/scripts/security_scan.py --root pack --pack pack
+
+      - name: List quarantined candidates
+        if: inputs.action == 'list-quarantine'
+        run: |
+          found=0
+          for entry in pack/automation/quarantine/*/quarantine.json; do
+            [ -e "$entry" ] || continue
+            found=1
+            echo "### $entry" >> "$GITHUB_STEP_SUMMARY"
+            cat "$entry" >> "$GITHUB_STEP_SUMMARY"
+          done
+          [ "$found" -eq 1 ] || echo "No quarantined candidates." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Dry-run the update engine
+        if: inputs.action == 'dry-run-update'
+        run: |
+          python .aladdin-spec/scripts/update_engine.py --root pack --pack pack \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Rebuild artifact
+        if: inputs.action == 'rebuild-artifact'
+        run: |
+          python .aladdin-spec/scripts/build_artifact.py --pack pack --out dist
+          cd dist && sha256sum *.zip | tee -a "$GITHUB_STEP_SUMMARY"

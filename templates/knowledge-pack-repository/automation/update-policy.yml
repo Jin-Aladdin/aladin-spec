@@ -1,0 +1,87 @@
+policy_version: "0.1.0"
+
+# Replace every value below. A policy that still carries template values must
+# not be enabled: automation.enabled stays false until a maintainer has
+# reviewed the sources, their licensing and their risk class.
+
+pack:
+  id: aladdin-kb-template
+
+automation:
+  enabled: false
+  level: detect
+  cadence: weekly
+  failure_mode: keep-last-valid
+  update_mode: pull-request
+  release_mode: manual
+  retry:
+    max_attempts: 3
+    backoff_seconds: 3600
+    failure_threshold: 3
+  quarantine:
+    retain_days: 90
+    max_entries: 100
+    block_source_after_entries: 5
+
+limits:
+  max_run_minutes: 30
+  max_sources_per_run: 20
+  max_download_bytes: 10000000
+  max_total_download_bytes: 100000000
+  max_files: 1000
+  max_artifact_bytes: 50000000
+  max_retries: 3
+  max_api_calls: 500
+  max_parallel_jobs: 1
+  max_language_model_cost_usd: 0
+
+gates:
+  schema_validation: required
+  reference_validation: required
+  security_scan: required
+  license_check: required
+  evaluation_suite: required
+
+sources:
+  - id: source:template.replace-me
+    enabled: false
+    adapter: static-file
+    path: upstream/example.json
+    risk_class: high
+    automation_level: detect
+    trust:
+      level: unknown
+      notes: >-
+        Replace with the real trust assessment. unknown keeps the source at
+        detect level until someone has judged it.
+    license:
+      policy: unclear
+      notes: >-
+        Unclear licensing forbids automatic publication. Document origin,
+        terms of use, permitted reuse and attribution before changing this.
+    change_detection:
+      method: content-hash
+    freshness:
+      max_age_days: 180
+      recheck_after_days: 7
+    limits:
+      max_download_bytes: 1000000
+      timeout_seconds: 30
+      max_redirects: 0
+
+release:
+  versioning: deterministic
+  require_clean_evaluation: true
+  attestation: required
+  sbom: optional
+
+notifications:
+  on_failure: issue
+  on_quarantine: issue
+  on_release: workflow-summary
+  on_stale_automation: issue
+
+heartbeat:
+  enabled: true
+  cadence: monthly
+  stale_after_days: 45
