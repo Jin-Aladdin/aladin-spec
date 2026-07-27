@@ -1,0 +1,24 @@
+{
+  "health_version": "0.1.0",
+  "generated_at": "2026-07-27T12:00:00Z",
+  "checks": {
+    "documentation": "pass",
+    "security": "pass",
+    "validate": "pass"
+  },
+  "repository": {
+    "last_commit_at": "2026-07-27T10:07:21Z",
+    "days_since_commit": 0
+  },
+  "release": {
+    "last_version": "",
+    "last_release_at": "",
+    "days_since_release": null
+  },
+  "thresholds": {
+    "stale_after_days": 45
+  },
+  "stale": false,
+  "reasons": [],
+  "next_check_due": "2026-07-28T12:00:00Z"
+}

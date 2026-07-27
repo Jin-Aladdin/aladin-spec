@@ -1,0 +1,113 @@
+name: Manual recovery
+
+# Operator-driven recovery. This workflow exists so a maintainer, or a
+# successor who has never seen this repository before, can re-establish a
+# known state without local tooling (ADR-0005, succession).
+#
+# It is dispatch-only on purpose. Nothing here runs on a schedule and nothing
+# here publishes.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Recovery action to perform
+        required: true
+        type: choice
+        options:
+          - run-all-gates
+          - rebuild-health-report
+          - list-quarantine
+          - dry-run-update
+          - rebuild-artifacts
+      pack:
+        description: Pack directory for pack-scoped actions
+        required: false
+        default: examples/automated-pack
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manual-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    name: ${{ inputs.action }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run all gates
+        if: inputs.action == 'run-all-gates'
+        run: |
+          python scripts/validate.py
+          python scripts/check_docs.py
+          python scripts/security_scan.py
+          python -m pytest tests -q
+
+      - name: Rebuild health report
+        if: inputs.action == 'rebuild-health-report'
+        run: |
+          python scripts/automation_health.py --check manual-recovery=pass
+          cat automation/health.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: List quarantined candidates
+        if: inputs.action == 'list-quarantine'
+        run: |
+          found=0
+          for entry in examples/*/automation/quarantine/*/quarantine.json; do
+            [ -e "${entry}" ] || continue
+            found=1
+            echo "### ${entry}" >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat "${entry}" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          done
+          if [ "${found}" -eq 0 ]; then
+            echo "No quarantined candidates." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Dry-run the update engine
+        if: inputs.action == 'dry-run-update'
+        run: |
+          # No --apply: state and audit stay untouched, nothing is published.
+          python scripts/update_engine.py --pack "${{ inputs.pack }}" --trigger manual \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Rebuild artifacts
+        if: inputs.action == 'rebuild-artifacts'
+        run: |
+          mkdir -p dist
+          for pack in examples/*/; do
+            if [ -f "${pack}aladdin-pack.yml" ]; then
+              python scripts/build_artifact.py --pack "${pack}" --out dist \
+                --source-commit "${GITHUB_SHA}"
+            fi
+          done
+          cd dist && sha256sum *.zip | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload recovery output
+        if: inputs.action == 'rebuild-artifacts'
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-artifacts
+          path: dist/
+          retention-days: 7

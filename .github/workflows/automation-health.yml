@@ -1,0 +1,115 @@
+name: Automation health
+
+# GitHub disables scheduled workflows after prolonged repository inactivity.
+# This heartbeat observes the automation, records its state and raises an
+# issue when it goes stale (ADR-0005).
+#
+# The schedule deliberately avoids minute 0, which is the platform-wide
+# congestion window. No workflow here assumes real-time execution.
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automation-health
+  cancel-in-progress: false
+
+jobs:
+  health:
+    name: Report automation health
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Run gates and collect their outcome
+        id: gates
+        run: |
+          set +e
+          python scripts/validate.py    > /dev/null 2>&1; echo "validate=$([ $? -eq 0 ] && echo pass || echo fail)"      >> "$GITHUB_OUTPUT"
+          python scripts/check_docs.py  > /dev/null 2>&1; echo "documentation=$([ $? -eq 0 ] && echo pass || echo fail)" >> "$GITHUB_OUTPUT"
+          python scripts/security_scan.py > /dev/null 2>&1; echo "security=$([ $? -eq 0 ] && echo pass || echo fail)"    >> "$GITHUB_OUTPUT"
+          python -m pytest tests -q     > /dev/null 2>&1; echo "tests=$([ $? -eq 0 ] && echo pass || echo fail)"         >> "$GITHUB_OUTPUT"
+
+      - name: Read latest release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          tag=$(gh release view --json tagName --jq .tagName 2>/dev/null)
+          published=$(gh release view --json publishedAt --jq .publishedAt 2>/dev/null)
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "published=${published%.*}Z" >> "$GITHUB_OUTPUT"
+
+      - name: Write health report
+        id: report
+        run: |
+          set +e
+          python scripts/automation_health.py \
+            --check validate=${{ steps.gates.outputs.validate }} \
+            --check documentation=${{ steps.gates.outputs.documentation }} \
+            --check security=${{ steps.gates.outputs.security }} \
+            --check tests=${{ steps.gates.outputs.tests }} \
+            --last-release-version "${{ steps.release.outputs.tag }}" \
+            --fail-when-stale
+          echo "stale=$([ $? -eq 0 ] && echo false || echo true)" >> "$GITHUB_OUTPUT"
+          {
+            echo '### Automation health'
+            echo '```json'
+            cat automation/health.json
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit heartbeat
+        run: |
+          # The heartbeat writes automation metadata only. It never touches
+          # knowledge content, so this commit cannot be mistaken for a
+          # knowledge change.
+          if git diff --quiet -- automation/health.json; then
+            echo "health report unchanged, nothing to commit"
+            exit 0
+          fi
+          git config user.name "aladdin-automation[bot]"
+          git config user.email "aladdin-automation[bot]@users.noreply.github.com"
+          git add automation/health.json
+          git commit -m "chore(automation): update health report [skip ci]"
+          git push
+
+      - name: Open an issue when automation is stale
+        if: steps.report.outputs.stale == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          existing=$(gh issue list --state open --label automation-health --json number --jq '.[0].number')
+          if [ -n "${existing}" ]; then
+            gh issue comment "${existing}" --body-file automation/health.json
+          else
+            gh issue create \
+              --title "Automation health: attention required" \
+              --label automation-health \
+              --body-file automation/health.json
+          fi

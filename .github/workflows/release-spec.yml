@@ -1,0 +1,126 @@
+name: Release specification
+
+# Releases are cut from a tag. The workflow refuses to publish anything that
+# has not passed every gate first (ADR-0005: automatic update and automatic
+# publication are separate phases with separate gates).
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to build, for example 0.1.0
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  # One release per version. A second run must never publish the same version.
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  gates:
+    name: Release gates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Validate schemas, manifests, records and update policies
+        run: python scripts/validate.py
+
+      - name: Documentation gate
+        run: python scripts/check_docs.py
+
+      - name: Security gate
+        run: python scripts/security_scan.py
+
+      - name: Test suite
+        run: python -m pytest tests -q
+
+  publish:
+    name: Build and publish
+    needs: gates
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Build specification bundle
+        run: |
+          mkdir -p dist
+          VERSION="${{ inputs.version || github.ref_name }}"
+          git archive --format=tar.gz --prefix="aladdin-spec-${VERSION}/" \
+            -o "dist/aladdin-spec-${VERSION}.tar.gz" HEAD
+
+      - name: Build example pack artifacts
+        run: |
+          for pack in examples/*/; do
+            if [ -f "${pack}aladdin-pack.yml" ]; then
+              python scripts/build_artifact.py \
+                --pack "${pack}" \
+                --out dist \
+                --source-commit "${GITHUB_SHA}" \
+                --validator-version "$(python scripts/validate.py --help >/dev/null 2>&1 && echo 0.1.0)" \
+                --built-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            fi
+          done
+
+      - name: Write checksum manifest
+        run: |
+          cd dist
+          sha256sum *.tar.gz *.zip > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            dist/*.tar.gz
+            dist/*.zip
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.provenance.json
+            dist/SHA256SUMS
+          generate_release_notes: true
+          fail_on_unmatched_files: true
