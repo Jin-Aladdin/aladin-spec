@@ -1,0 +1,565 @@
+= ADR-0002: Canonical Knowledge Model
+Jin-Aladdin
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+:icons: font
+
+[cols="1,3",options="header"]
+|===
+| Field
+| Value
+
+| Status
+| Accepted
+
+| Decision date
+| 2026-07-27
+
+| Decision owners
+| Aladin Spec Maintainers
+
+| Specification phase
+| Pre-Alpha
+
+| Related components
+| Knowledge Packs, Compatibility Adapters, Validator, Registry, Gateway, Global Metadata Index
+|===
+
+== Context
+
+The Aladin ecosystem is expected to evolve over many years.
+
+Knowledge Packs may be created with different:
+
+* specification versions
+* source formats
+* storage formats
+* languages
+* domain conventions
+* graph structures
+* embedding models
+* build pipelines
+
+External systems may also provide compatible knowledge that was not originally authored as an Aladin Knowledge Pack.
+
+Without a stable internal model, every gateway, retriever, re-ranker and AI runtime would need to understand every historical and external format directly.
+
+[source,text]
+----
+Gateway
+├── Spec 0.x logic
+├── Spec 1.x logic
+├── Spec 2.x logic
+├── external JSON logic
+├── external graph logic
+└── legacy migration logic
+----
+
+That design would spread compatibility code throughout the entire system and make upgrades increasingly dangerous.
+
+== Problem
+
+The ecosystem needs one normalized internal representation that:
+
+* preserves source provenance
+* supports multiple specification versions
+* separates knowledge from storage format
+* supports graph and retrieval use cases
+* preserves multilingual information
+* represents uncertainty and contradiction
+* supports migrations
+* avoids data loss during conversion
+* remains independent from one database or model
+
+== Decision
+
+Aladin will define a *Canonical Knowledge Model*, abbreviated as *CKM*.
+
+Every supported Knowledge Pack format is converted into the CKM before it is indexed, retrieved, re-ranked or supplied to an AI runtime.
+
+[source,text]
+----
+Knowledge Pack Spec 0.x ─┐
+Knowledge Pack Spec 1.x ─┤
+Knowledge Pack Spec 2.x ─┼──► Compatibility Adapter ──► CKM
+External Compatible Data ┤
+Legacy Aladin Data ──────┘
+----
+
+The CKM is a logical model. It does not require one physical database, serialization format or programming language.
+
+== Core Objects
+
+The first CKM series will define the following core objects.
+
+[cols="1,3",options="header"]
+|===
+| Object
+| Responsibility
+
+| Pack
+| Identifies a Knowledge Pack, its version, lifecycle state and compatibility information.
+
+| Artifact
+| Describes a built package artifact, checksums, signatures and build provenance.
+
+| Claim
+| Represents a statement, assertion, instruction, observation or interpretation.
+
+| Source
+| Identifies the origin used to support or contextualize knowledge.
+
+| Evidence
+| Connects a claim to a precise source location or extracted fragment.
+
+| Entity
+| Represents a stable real-world, technical or conceptual object.
+
+| Relation
+| Connects entities, claims or concepts using a typed relationship.
+
+| Concept
+| Provides normalized topic and semantic classification.
+
+| Translation
+| Connects translated content to its original representation and transformation history.
+
+| Conflict
+| Records contradiction, disagreement or unresolved inconsistency.
+
+| Evaluation
+| Stores validation, quality or retrieval test results.
+
+| Policy
+| Describes licensing, access, jurisdictional or usage constraints.
+|===
+
+== Identity Rules
+
+Every canonical object must have a stable identifier.
+
+Identifiers should be:
+
+* unique within the relevant namespace
+* deterministic where practical
+* independent from database row numbers
+* safe to reference across pack versions
+* explicit about object type or namespace
+
+Example:
+
+[source,text]
+----
+claim:docker.volume.persistence.001
+source:docker.docs.storage.volumes
+entity:docker.volume
+concept:container-storage
+----
+
+A runtime may use internal database identifiers for performance, but those identifiers must not replace the canonical public identity.
+
+== Claims
+
+A claim is the primary unit of knowledge.
+
+A claim may represent:
+
+* factual information
+* procedural guidance
+* definitions
+* observations
+* interpretations
+* hypotheses
+* warnings
+* constraints
+* recommendations
+
+A conceptual canonical claim may contain:
+
+[source,json]
+----
+{
+  "id": "claim:docker.volume.persistence.001",
+  "kind": "factual",
+  "statement": "A Docker volume can persist data beyond the lifecycle of an individual container.",
+  "language": "en",
+  "status": "source-backed",
+  "confidence": 0.98,
+  "source_ids": [
+    "source:docker.docs.storage.volumes"
+  ],
+  "entity_ids": [
+    "entity:docker.volume"
+  ],
+  "concept_ids": [
+    "concept:container-storage"
+  ],
+  "valid_from": null,
+  "valid_until": null,
+  "created_at": "2026-07-27T00:00:00Z",
+  "last_verified_at": "2026-07-27T00:00:00Z"
+}
+----
+
+This example is illustrative and not yet normative.
+
+== Sources and Evidence
+
+A source identifies the origin. Evidence identifies the exact part of that source used for a claim.
+
+[source,text]
+----
+Claim
+  │
+  ├── Source: official Docker documentation
+  │       │
+  │       └── Evidence: section, paragraph or content hash
+  │
+  └── Source: verified technical reference
+          │
+          └── Evidence: exact extract or structured record
+----
+
+Separating sources from evidence prevents one broad document reference from being treated as precise proof for every claim.
+
+Evidence may describe:
+
+* page or section
+* line range
+* timestamp
+* paragraph selector
+* JSON pointer
+* database record
+* content hash
+* archived snapshot
+* extracted fragment
+
+== Entities and Relations
+
+Entities represent reusable objects such as:
+
+* people
+* organizations
+* software projects
+* programming languages
+* protocols
+* scientific concepts
+* locations
+* products
+* laws
+* technical components
+
+Relations connect canonical objects.
+
+[source,json]
+----
+{
+  "id": "relation:docker.volume.used-by.container",
+  "type": "used-by",
+  "from": "entity:docker.volume",
+  "to": "entity:docker.container",
+  "source_ids": [
+    "source:docker.docs.storage.volumes"
+  ]
+}
+----
+
+Relations must use defined types or explicitly namespaced extension types.
+
+== Multilingual Representation
+
+Language variants must not be treated as unrelated knowledge.
+
+The CKM distinguishes between:
+
+* original content
+* human translation
+* machine translation
+* human-reviewed machine translation
+* locale-specific adaptation
+* language-independent entities
+
+[source,text]
+----
+Original Claim: en
+      │
+      ├── Translation: de
+      ├── Translation: sq
+      └── Translation: fr
+----
+
+A translation must preserve a link to:
+
+* the original object
+* translation method
+* translator or model identity where available
+* creation time
+* review status
+* semantic equivalence status
+
+== Time and Validity
+
+Knowledge can change.
+
+The CKM must distinguish:
+
+* object creation time
+* source publication time
+* retrieval time
+* verification time
+* validity start
+* validity end
+* deprecation time
+* recall time
+
+A claim that was historically correct must not be silently overwritten when it becomes outdated.
+
+[source,text]
+----
+Claim version A
+Valid: 2024-01-01 to 2025-06-30
+
+Claim version B
+Valid: 2025-07-01 onward
+----
+
+== Confidence and Verification
+
+Confidence and verification are separate concepts.
+
+*Confidence* expresses estimated certainty.
+
+*Verification status* describes the process or evidence state.
+
+Possible verification states may include:
+
+* unreviewed
+* source-linked
+* source-backed
+* automatically-verified
+* human-reviewed
+* disputed
+* superseded
+* invalidated
+
+A high confidence value must not falsely imply human verification.
+
+== Contradictions and Conflicts
+
+The CKM must preserve meaningful disagreements instead of deleting one side automatically.
+
+A conflict record may identify:
+
+* involved claims
+* conflict type
+* affected scope
+* supporting sources
+* discovery method
+* resolution state
+* preferred claim, when justified
+* reviewer decision
+* resolution timestamp
+
+[source,text]
+----
+Claim A ─┐
+         ├── Conflict Record ──► unresolved / resolved / contextual
+Claim B ─┘
+----
+
+Conflicts may be:
+
+* direct contradictions
+* version differences
+* jurisdiction differences
+* language ambiguities
+* source disagreements
+* context-dependent differences
+* outdated-versus-current knowledge
+
+== Provenance Preservation
+
+Adapters must preserve provenance during conversion.
+
+A converted object should retain:
+
+* original pack identifier
+* original object identifier
+* source specification version
+* adapter identifier and version
+* conversion timestamp
+* transformation steps
+* warnings
+* fields that could not be mapped
+* original content hash
+
+The CKM must not make lossy conversion invisible.
+
+== Extension Model
+
+The core model cannot predict every future domain.
+
+Extensions are allowed through namespaced fields and types.
+
+Example:
+
+[source,yaml]
+----
+extensions:
+  org.example.medical:
+    evidence_grade: "A"
+    study_type: "randomized-controlled-trial"
+----
+
+Extensions must not redefine the meaning of required core fields.
+
+A compatible runtime may preserve an unknown extension without understanding it.
+
+== Physical Storage Independence
+
+The CKM may be represented using:
+
+* in-memory objects
+* relational databases
+* document databases
+* graph databases
+* columnar storage
+* search indexes
+* local embedded databases
+
+The logical meaning must remain consistent across implementations.
+
+[source,text]
+----
+CKM Logical Model
+├── SQLite implementation
+├── PostgreSQL implementation
+├── Graph database implementation
+├── Parquet implementation
+└── In-memory implementation
+----
+
+== Adapter Responsibilities
+
+A compatibility adapter must:
+
+. identify the input specification or format
+. validate the input before conversion
+. map supported fields into CKM objects
+. preserve original identifiers
+. preserve provenance
+. report unsupported or lossy mappings
+. attach adapter version information
+. produce deterministic output where practical
+. fail safely when required information is missing
+
+Adapters must not invent evidence or silently increase confidence.
+
+== Canonicalization Does Not Mean Truth
+
+Conversion into the CKM does not prove that knowledge is correct.
+
+Canonicalization means that information has been normalized into a common structure.
+
+Trust, source authority, validation, contradiction handling and human review remain separate processes.
+
+[WARNING]
+====
+A canonical object can still contain false, malicious, outdated or low-quality information.
+====
+
+== Versioning
+
+The CKM itself will be versioned independently from individual Knowledge Packs.
+
+[source,yaml]
+----
+canonical_model:
+  name: aladin-ckm
+  version: 0.1.0
+----
+
+A specification adapter may map multiple Knowledge Pack versions into one CKM version.
+
+[source,text]
+----
+Pack Spec 0.1 ─┐
+Pack Spec 0.2 ─┼──► CKM 0.1
+Pack Spec 0.3 ─┘
+----
+
+Breaking CKM changes require a major version increase and documented migration guidance.
+
+== Positive Consequences
+
+This decision provides:
+
+* one internal model for retrieval and reasoning
+* simpler gateway and indexer design
+* controlled backward compatibility
+* support for external formats
+* centralized migration logic
+* preserved provenance
+* storage independence
+* easier testing
+* fewer version-specific branches throughout the runtime
+
+== Negative Consequences
+
+This decision introduces:
+
+* adapter development and maintenance
+* canonical schema governance
+* migration complexity
+* risk of lossy conversion
+* pressure to keep the core model sufficiently general
+* additional validation requirements
+
+The CKM may become overly complex if domain-specific fields are added to the core without restraint.
+
+== Alternatives Considered
+
+=== Every Runtime Supports Every Pack Version Directly
+
+Rejected because compatibility logic would be duplicated throughout the ecosystem.
+
+=== Convert All Repositories Permanently to the Latest Spec
+
+Rejected because community repositories may be abandoned, historical artifacts must remain reproducible and forced rewrites can destroy provenance.
+
+=== Use One Database Schema as the Standard
+
+Rejected because the specification must remain independent from one storage engine and deployment model.
+
+=== Only Store Unstructured Text Chunks
+
+Rejected because text chunks alone cannot reliably preserve entities, relationships, precise provenance, lifecycle state, conflicts and policies.
+
+== Compatibility
+
+The first CKM draft is not yet a stable public schema.
+
+ADR-0002 establishes the architectural requirement. Normative field definitions will be created later in dedicated specification and JSON Schema files.
+
+== Implementation Guidance
+
+The first reference implementation should demonstrate:
+
+* two different input pack versions
+* conversion through separate adapters
+* identical canonical object types
+* preserved source references
+* warnings for unmapped fields
+* deterministic conversion tests
+* retrieval over the normalized output
+
+== Final Decision
+
+[quote]
+____
+Every supported knowledge format is translated into one canonical model before it enters Aladin's retrieval and intelligence pipeline.
+____
+
+The Canonical Knowledge Model is accepted as a foundational architectural component of the Aladin ecosystem.
