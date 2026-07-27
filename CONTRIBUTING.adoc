@@ -1,0 +1,166 @@
+= Contributing
+Jin-Aladdin
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+
+Contributions are welcome. This document describes what the project expects, so
+a contribution does not fail on something avoidable.
+
+== Before You Start
+
+Read, in this order:
+
+. `README.adoc` for the scope.
+. `decisions/` for the binding architecture. All five ADRs are accepted and
+  normative.
+. `GOVERNANCE.adoc` for how decisions are made.
+
+A change that contradicts an accepted ADR needs a new ADR first. That is not a
+formality: those decisions are what other implementations rely on.
+
+== Local Setup
+
+[source,text]
+----
+python -m pip install -r requirements-dev.txt
+----
+
+Everything the project needs is in that file. There is no build step, no
+generated code and no service to run.
+
+== Gates
+
+Run all four before opening a pull request. CI runs the same commands.
+
+[source,text]
+----
+python scripts/validate.py
+python scripts/check_docs.py
+python scripts/security_scan.py
+python -m pytest tests -q
+----
+
+[cols="1,2",options="header"]
+|===
+| Command
+| Checks
+
+| `validate.py`
+| Schemas are valid draft 2020-12 with unique identifiers, manifests and
+  records validate, identifiers are unique, entry points exist inside the pack,
+  cross references resolve, update policies are valid.
+
+| `check_docs.py`
+| AsciiDoc listing and quote blocks are properly delimited, documentation is
+  AsciiDoc.
+
+| `security_scan.py`
+| Pack directories carry no executable content, no binary payloads, no
+  symbolic links, no oversized files and no committed credentials.
+
+| `pytest`
+| Positive and negative coverage for validation, the update engine and the
+  repository template.
+|===
+
+== Documentation Format
+
+Documentation is AsciiDoc. `.adoc`, not `.md`.
+
+Listing blocks must be delimited. A nested example uses a longer outer
+delimiter, because a block ends at the first delimiter of its own length:
+
+[source,asciidoc]
+------
+[source,json]
+----
+{
+  "example": true
+}
+----
+------
+
+Quote blocks use `____`, not `---`. Both defects have occurred here, both
+render silently wrong, and `check_docs.py` now fails the build on either.
+
+== Language
+
+Repository content is English: specification text, schema descriptions, code
+comments, error messages, commit messages, issues and pull requests.
+
+== Commits
+
+Use small, reviewable commits with a conventional prefix:
+
+[source,text]
+----
+feat:     a new schema, field, script or capability
+fix:      a defect in existing content or tooling
+docs:     documentation only
+test:     tests and fixtures
+ci:       workflows and automation configuration
+refactor: a change with no behavioural difference
+chore:    repository housekeeping
+----
+
+Explain *why* in the body. The diff already shows what changed. A commit that
+introduces a breaking change says so with `!` and a `BREAKING CHANGE:` note.
+
+== Adding a Schema
+
+The canonical object series is defined in ADR-0002. When adding one:
+
+. Design the schema. Draft 2020-12, unique `$id`, `additionalProperties: false`
+  on every core object, namespaced `extensions` for anything else.
+. Add a positive example that a real pack could contain.
+. Add negative fixtures, one per rule you want enforced.
+. Extend the validator only if the new type needs a check the generic
+  reference resolver cannot express.
+. Run every gate.
+. Update the affected documentation.
+. Commit.
+
+Do not add several schemas in one sweep. Each one needs its own example and its
+own negative coverage.
+
+== Adding a Source Adapter
+
+Adapters are security boundaries. A new adapter must:
+
+* accept only its declared input shape
+* resolve targets against the allowlist, including after every redirect
+* apply timeout, size and redirect limits
+* verify the content type
+* record retrieval time, final location and content hash
+* execute nothing from the retrieved bytes
+* fail closed with a structured error
+
+Add it to the fixed registry in `scripts/source_adapters.py`. It is never
+selected or parameterized by pack content. Add tests for the failure modes
+first, then the success path.
+
+== Pull Requests
+
+* One logical change per pull request.
+* Tests for anything a validator can check.
+* All gates green.
+* State clearly if the change is breaking.
+* Link the issue that describes the problem.
+
+== What Will Be Rejected
+
+* A schema change without tests.
+* A change that contradicts an accepted ADR without a new ADR.
+* Executable content inside a pack directory.
+* An adapter that fetches without limits or without an allowlist.
+* A claim example whose confidence is unexplained, or whose status implies
+  verification it does not have.
+* Markdown documentation.
+* Wording that presents a draft as a ratified standard, generated content as
+  verified knowledge, or a schema as proof that data is true.
+
+== Security
+
+Do not open a public issue for a security problem. See `SECURITY.adoc`.

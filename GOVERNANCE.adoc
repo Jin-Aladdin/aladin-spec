@@ -1,0 +1,160 @@
+= Governance
+Jin-Aladdin
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+
+[IMPORTANT]
+====
+Status: *Draft*. The project is Pre-Alpha with a single owner. This document
+describes how decisions are made now and how the model is expected to open up
+as external contribution grows.
+====
+
+== Scope
+
+This document governs the public specification repository: the specification
+text, the JSON Schemas, the reference validator, the automation architecture
+and the repository template.
+
+It does not govern proprietary components. ADR-0004 defines that boundary.
+
+== Decision Types
+
+[cols="1,2,1",options="header"]
+|===
+| Type
+| Examples
+| Instrument
+
+| Editorial
+| Wording, formatting, examples, non-normative clarification.
+| Pull request.
+
+| Additive
+| A new optional field, a new example, a new test, a new adapter.
+| Pull request with tests.
+
+| Normative
+| A new required field, a changed constraint, a new gate, a new schema.
+| Pull request plus a specification change and a version note.
+
+| Architectural
+| A rule that binds every implementation, or a reversal of an existing rule.
+| A new ADR. Existing ADRs are never edited into a different decision.
+|===
+
+An architectural decision is never made silently inside an implementation
+change. If a pull request would contradict an accepted ADR, it needs a new ADR
+first.
+
+== Architecture Decision Records
+
+ADRs live in `decisions/` and are numbered sequentially.
+
+An accepted ADR is immutable in substance. To change a decision, write a new
+ADR that supersedes it and state the supersession in both records. Correcting a
+typo is editorial; changing what the decision says is not.
+
+Every ADR states its status, decision date, owners, specification phase and the
+components it binds.
+
+== Change Process
+
+. Open an issue describing the problem, not only the proposed solution.
+. For a normative or architectural change, agree on the problem before the
+  wording.
+. Open a pull request. Include tests for anything a validator can check.
+. Every gate must pass: schemas and tests, documentation, security.
+. A maintainer reviews. The author does not merge their own normative change
+  once more than one maintainer exists.
+. Record the change in `CHANGELOG.adoc`.
+
+== Compatibility Rules
+
+The specification follows Semantic Versioning.
+
+[cols="1,2",options="header"]
+|===
+| Increment
+| Meaning
+
+| Patch
+| Corrections and clarifications that change no conformant behaviour.
+
+| Minor
+| Backward-compatible additions: new optional fields, new enum values that a
+  reader may ignore, new examples.
+
+| Major
+| Incompatible changes: new required fields, removed fields, changed semantics
+  of existing identifiers, tightened constraints that reject previously valid
+  data.
+|===
+
+No silent breaking changes. A change that makes previously valid data invalid
+is major, regardless of how small the diff looks.
+
+While the series is `0.x`, breaking changes are possible between minor
+versions, and every one of them is announced in `CHANGELOG.adoc`.
+
+== Deprecation
+
+. Mark the element as deprecated in the schema description and the
+  specification.
+. Record it in `CHANGELOG.adoc` with the replacement.
+. Keep it valid for at least one minor version.
+. Remove it only in a major version.
+
+Removing something that was never announced as deprecated is a defect, not a
+release.
+
+== Conflict Resolution
+
+. Discuss in the issue.
+. If unresolved, a maintainer summarizes the positions and proposes a decision.
+. If still unresolved, the owner decides and records the reasoning in an ADR or
+  in the issue.
+
+Technical disagreement is resolved by argument and evidence, not by seniority.
+The record of why a decision was made matters more than who made it.
+
+== Security Decisions
+
+Security-relevant decisions do not follow the normal open discussion path until
+a fix exists. See `SECURITY.adoc`. The security contact has authority to
+withhold details until publication is coordinated.
+
+A security fix may ship as a breaking change if no compatible fix exists. That
+is stated explicitly rather than disguised as a minor release.
+
+== Maintainer Roles
+
+Defined in `MAINTAINERS.adoc`. Roles are owner, maintainer and security
+contact. Succession, machine identities and recovery are documented in
+`SUCCESSION.adoc`.
+
+The commercial owner retains final control during the early project phase. This
+model is expected to become more explicit and more distributed as external
+contribution increases, not less.
+
+== Contribution Licensing
+
+Contributions are accepted under the repository license, Apache License 2.0.
+
+A contribution to the public specification does not grant the contributor
+ownership of proprietary Aladdin services, and accepting a contribution does
+not relicense the contributor's work outside the repository license. No
+contributor license agreement is required at this stage.
+
+== Terminology Honesty
+
+The project describes a component as open source only when its license grants
+the rights to use, inspect, modify and redistribute. Anything else is described
+accurately as proprietary, source-available, private or commercially licensed
+(ADR-0004).
+
+The project does not present a draft as a ratified standard, does not present
+generated content as verified knowledge, and does not present a schema as proof
+that data is true.

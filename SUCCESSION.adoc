@@ -1,0 +1,241 @@
+= Succession and Continuity
+Jin-Aladdin
+:description: How the Aladdin specification and its Knowledge Packs survive the absence of any individual maintainer.
+:toc: macro
+:toc-title: Contents
+:toclevels: 3
+:sectanchors:
+:sectlinks:
+
+[IMPORTANT]
+====
+Status: *Draft*. This document describes the intended arrangement. Several
+items are explicitly marked as not yet in place, and those gaps are the
+current single points of failure.
+====
+
+toc::[]
+
+== Purpose
+
+ADR-0005 states that Knowledge Packs must keep maintaining, validating,
+versioning and publishing their knowledge without depending on the continuous
+presence of their original creator.
+
+That is an architectural claim. This document is the operational half: who owns
+what, what happens when they stop, and how someone who has never seen this
+project can take it over.
+
+== Current State
+
+Honest assessment as of the draft `0.1.0` specification series.
+
+[cols="1,1,2",options="header"]
+|===
+| Item
+| Status
+| Consequence
+
+| Repository owner
+| One personal account, `Jin-Aladdin`
+| *Single point of failure.* If the account is lost, the canonical repository
+  is lost with it.
+
+| Organization
+| Not created
+| No second owner, no organization-scoped app, no shared administration.
+
+| GitHub App
+| Not created
+| Cross-repository automation is not yet possible without a personal token.
+
+| Automation credentials
+| Repository-scoped `GITHUB_TOKEN` only
+| Nothing to rotate, nothing to lose. This part is already correct.
+
+| Published artifacts
+| None yet
+| Nothing to preserve or recall so far.
+
+| Mirrors
+| None
+| A GitHub outage or account loss has no fallback.
+
+| Documented recovery
+| Yes, in this document and in the repository template
+| A successor has instructions.
+|===
+
+== Roles
+
+[cols="1,2,2",options="header"]
+|===
+| Role
+| Responsibility
+| Minimum count
+
+| Owner
+| Final authority on scope, licensing, releases and repository administration.
+| Two, once an organization exists. Currently one.
+
+| Maintainer
+| Review, merge, gate changes, quarantine triage.
+| One, ideally two.
+
+| Security contact
+| Private vulnerability reports, key rotation, compromise response.
+| One named person or address.
+
+| Machine identity
+| Automated validation, health reporting, candidate pull requests, releases.
+| Repository-scoped by default; organization app for cross-repository work.
+|===
+
+Roles may overlap in a small project. What must not overlap is the *only* path
+to recovery and the person most likely to disappear.
+
+== Recommended Organization Structure
+
+The recommendation, not yet executed:
+
+* move the repositories into a GitHub organization
+* at least two owner accounts with independent recovery methods
+* separate maintainer and bot permissions
+* an organization-owned GitHub App for cross-repository automation
+* protected branches or rulesets on `main`
+* central workflow templates
+* a central sentinel repository
+* secrets separated by responsibility
+
+Repository transfer is never performed automatically and requires explicit
+approval from the current owner.
+
+== Machine Identity Policy
+
+Preferred order, from ADR-0005:
+
+. the repository-scoped `GITHUB_TOKEN` when its scope suffices
+. an organization-owned GitHub App for cross-repository actions
+. OpenID Connect for supported external infrastructure
+. no personal access token as a permanent foundation
+
+A personal access token belonging to the founder is not an acceptable legacy
+architecture. It expires, it is bound to one account, it cannot be handed over
+and it grants far more than any single workflow needs.
+
+== Secret Inventory
+
+Names and purposes only. Never values, never fragments of values.
+
+[cols="1,2,1,1",options="header"]
+|===
+| Secret name
+| Purpose
+| Rotation
+| Owner
+
+| `GITHUB_TOKEN`
+| Issued automatically per workflow run.
+| Not applicable
+| GitHub
+
+| _none other_
+| The specification repository currently requires no configured secrets.
+| n/a
+| n/a
+|===
+
+Adding a secret means adding a row here, naming a rotation owner and naming a
+rotation interval. A secret without an owner is an orphan by construction.
+
+== Backup and Mirroring
+
+Not yet in place. The intended targets, any of which must be replaceable:
+
+* a second git remote on an independent host
+* S3-compatible object storage for release bundles
+* archived release bundles with checksums
+* an independent registry
+* an institutional or academic mirror
+
+What must be covered: git history, tags, releases, artifacts, schemas, pack
+manifests, provenance data, registry metadata and automation configuration.
+
+The open standard must not depend on a single provider. Until a mirror exists,
+GitHub availability is a real dependency and is listed as such.
+
+== Handover Procedure
+
+For a maintainer preparing to hand over:
+
+. Name the successor in `MAINTAINERS.adoc` and grant access.
+. Confirm the successor can run the *Manual recovery* workflow.
+. Confirm the successor can cut a release.
+. Transfer or re-create every machine identity under the new owner.
+. Rotate every secret. Handover is a rotation event.
+. Update this document with the new ownership and the date.
+. Leave the old maintainer's access in place for one overlap period, then
+  remove it deliberately rather than by expiry.
+
+For a successor taking over cold:
+
+. Read `README.adoc`, then `decisions/`, in order.
+. Run the *Manual recovery* workflow with `run-all-gates`.
+. Read `automation/health.json` to see what the automation last observed.
+. Check the Actions tab for disabled scheduled workflows and re-enable them.
+. Review any open `automation-health` issue.
+. Do not change gate configuration before you can make the gates pass.
+
+== Abandoned Account
+
+If the founding account becomes unreachable and no organization exists:
+
+. The repository content survives in every clone and every published artifact.
+. Fork the most recent complete clone.
+. Publish the fork with a clear statement of what happened and which commit it
+  continues from.
+. Recreate the automation from the repository template and this document.
+. Do not silently claim the original identity. Continuity must be visible.
+
+This is a recovery path, not a substitute for creating an organization.
+
+== Disabled Automation
+
+GitHub disables scheduled workflows after prolonged inactivity. This is
+expected, not exceptional.
+
+. The heartbeat exists to make the silence visible.
+. `automation/health.json` records the last observation and its age.
+. The *Manual recovery* workflow restores a known state without local tooling.
+. A sentinel repository, once it exists, detects the silence from outside.
+
+A heartbeat reduces risk. It does not guarantee that a hosted CI platform will
+run forever, and this document does not pretend otherwise.
+
+== Compromised Automation
+
+. Revoke the affected credential immediately.
+. Disable the update and release workflows.
+. Review `automation/audit/` for every decision in the affected window.
+. Verify published artifact checksums against the release records.
+. Recall any artifact that cannot be verified.
+. Rotate credentials and re-enable workflows one at a time.
+. Record the incident and its resolution.
+
+A recall never deletes history.
+
+== Known Single Points of Failure
+
+Stated plainly, because an unstated risk is an unmanaged one:
+
+. One personal account owns the canonical repository.
+. No organization and no second owner exist.
+. No mirror exists; GitHub availability is a hard dependency today.
+. Knowledge Pack repositories built from the template check out this
+  repository for their tooling. The template documents vendoring as the
+  mitigation, but the dependency is real until they pin and vendor.
+. No sentinel repository exists yet, so nothing observes a repository whose
+  automation went silent.
+. The `0.1.0` specification is a draft. Nothing about it is frozen.
+
+Each of these is tracked as a gap rather than described as solved.

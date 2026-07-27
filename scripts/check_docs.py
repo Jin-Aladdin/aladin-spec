@@ -37,6 +37,22 @@ ALLOWED_MARKDOWN = {
 BLOCK_DELIMITER = "----"
 QUOTE_DELIMITER = "____"
 
+#: Minimum delimiter length in AsciiDoc. A block ends at the first delimiter
+#: of its own length, so a nested example must use a longer outer delimiter.
+MINIMUM_DELIMITER_LENGTH = 4
+
+
+def delimiter_kind(line: str) -> tuple[str, int] | None:
+    """Return ``(kind, length)`` when ``line`` is a block delimiter."""
+    stripped = line.rstrip()
+    if len(stripped) < MINIMUM_DELIMITER_LENGTH:
+        return None
+    if stripped == "-" * len(stripped):
+        return ("source", len(stripped))
+    if stripped == "_" * len(stripped):
+        return ("quote", len(stripped))
+    return None
+
 
 @dataclass(frozen=True)
 class Finding:
@@ -71,31 +87,27 @@ def check_asciidoc(path: Path, root: Path) -> list[Finding]:
     findings: list[Finding] = []
     lines = path.read_text(encoding="utf-8").splitlines()
 
-    inside_block = False
-    inside_quote = False
+    # The open block, as (kind, delimiter length). A block ends only at a
+    # delimiter of its own length, so a longer outer delimiter can wrap an
+    # example that itself contains a delimiter.
+    open_block: tuple[str, int] | None = None
     pending: tuple[int, str] | None = None
 
     for number, raw in enumerate(lines, start=1):
         line = raw.rstrip()
+        delimiter = delimiter_kind(line)
 
-        if inside_block:
-            if line == BLOCK_DELIMITER:
-                inside_block = False
-            continue
-        if inside_quote:
-            if line == QUOTE_DELIMITER:
-                inside_quote = False
+        if open_block is not None:
+            if delimiter is not None and delimiter == open_block:
+                open_block = None
             continue
 
         if pending is not None:
             opener, kind = pending
             pending = None
             expected = BLOCK_DELIMITER if kind == "source" else QUOTE_DELIMITER
-            if line == expected:
-                if kind == "source":
-                    inside_block = True
-                else:
-                    inside_quote = True
+            if delimiter is not None and delimiter[0] == kind:
+                open_block = delimiter
                 continue
             findings.append(
                 Finding(
@@ -111,10 +123,8 @@ def check_asciidoc(path: Path, root: Path) -> list[Finding]:
             pending = (number, "source")
         elif line == "[quote]":
             pending = (number, "quote")
-        elif line == BLOCK_DELIMITER:
-            inside_block = True
-        elif line == QUOTE_DELIMITER:
-            inside_quote = True
+        elif delimiter is not None:
+            open_block = delimiter
 
     if pending is not None:
         opener, kind = pending
@@ -122,10 +132,8 @@ def check_asciidoc(path: Path, root: Path) -> list[Finding]:
         findings.append(
             Finding(rel, f"{kind} block at end of file is not delimited by {expected!r}", line=opener)
         )
-    if inside_block:
-        findings.append(Finding(rel, f"unclosed {BLOCK_DELIMITER!r} block"))
-    if inside_quote:
-        findings.append(Finding(rel, f"unclosed {QUOTE_DELIMITER!r} block"))
+    if open_block is not None:
+        findings.append(Finding(rel, f"unclosed {'-' if open_block[0] == 'source' else '_'} block"))
 
     if not lines:
         findings.append(Finding(rel, "documentation file is empty"))

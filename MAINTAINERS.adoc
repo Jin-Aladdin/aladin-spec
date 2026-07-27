@@ -1,0 +1,106 @@
+= Maintainers
+Jin-Aladdin
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+
+== Current Maintainers
+
+[cols="1,1,1,2",options="header"]
+|===
+| Name
+| GitHub
+| Role
+| Responsibility
+
+| Jin-Aladdin
+| `Jin-Aladdin`
+| owner
+| Scope, licensing, releases, repository administration.
+
+| Jin-Aladdin
+| `Jin-Aladdin`
+| security-contact
+| Private vulnerability reports, key rotation, compromise response.
+|===
+
+[WARNING]
+====
+One person currently holds every role. That is a single point of failure and is
+tracked as such in `SUCCESSION.adoc`. The intended arrangement is a GitHub
+organization with at least two independent owners.
+====
+
+== Machine Identities
+
+[cols="1,2,1",options="header"]
+|===
+| Identity
+| Used for
+| Rotation
+
+| `GITHUB_TOKEN`
+| Validation, documentation and security gates, health reporting.
+| Issued per run by GitHub. Nothing to rotate.
+
+| Organization GitHub App
+| Not created yet. Intended for cross-repository releases, registry updates
+  and sentinel dispatch.
+| To be defined when created.
+|===
+
+No personal access token is used by any workflow in this repository, and none
+may become the permanent basis of its automation.
+
+== Secret Inventory
+
+Names and purposes only. Never values.
+
+[cols="1,2,1,1",options="header"]
+|===
+| Secret name
+| Purpose
+| Rotation
+| Owner
+
+| _none_
+| This repository requires no configured secrets. The automatic `GITHUB_TOKEN`
+  covers every workflow.
+| n/a
+| n/a
+|===
+
+Adding a secret requires a row here, a named rotation owner and a rotation
+interval.
+
+== How to Reach a Maintainer
+
+[cols="1,2",options="header"]
+|===
+| Topic
+| Route
+
+| Specification question
+| GitHub issue.
+
+| Proposed change
+| GitHub issue first, then a pull request.
+
+| Architectural proposal
+| GitHub issue with the problem statement, then an ADR.
+
+| Security issue
+| Private vulnerability reporting. Never a public issue. See `SECURITY.adoc`.
+
+| Automation appears stuck
+| Check the open `automation-health` issue, then run the *Manual recovery*
+  workflow.
+|===
+
+== Escalation
+
+. Failing gate on `main`: open an issue, do not disable the gate.
+. Automation silence: see `SUCCESSION.adoc`, section on disabled automation.
+. No maintainer reachable: see `SUCCESSION.adoc`, section on an abandoned
+  account.
