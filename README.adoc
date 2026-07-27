@@ -14,7 +14,7 @@ Jin-Aladdin
 
 [.text-center]
 image:https://img.shields.io/badge/STATUS-PRE--ALPHA-F59E0B?style=for-the-badge[Project status: Pre-Alpha]
-image:https://img.shields.io/badge/SPEC-0.2.x--DRAFT-7C3AED?style=for-the-badge[Specification series: 0.3.x Draft]
+image:https://img.shields.io/badge/SPEC-0.3.x--DRAFT-7C3AED?style=for-the-badge[Specification series: 0.3.x Draft]
 image:https://img.shields.io/github/v/release/Jin-Aladdin/aladdin-spec?style=for-the-badge&label=RELEASE[Latest release,link=https://github.com/Jin-Aladdin/aladdin-spec/releases/latest]
 image:https://img.shields.io/github/license/Jin-Aladdin/aladdin-spec?style=for-the-badge[License,link=https://github.com/Jin-Aladdin/aladdin-spec/blob/main/LICENSE]
 image:https://img.shields.io/github/issues/Jin-Aladdin/aladdin-spec?style=for-the-badge[Open issues,link=https://github.com/Jin-Aladdin/aladdin-spec/issues]
