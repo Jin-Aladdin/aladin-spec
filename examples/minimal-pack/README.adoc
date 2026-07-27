@@ -1,17 +1,17 @@
-= Minimal Aladin Knowledge Pack
+= Minimal Aladdin Knowledge Pack
 Jin-Aladdin
 :toc:
 :toc-title: Contents
 :sectanchors:
 :sectlinks:
 
-This directory contains the smallest practical example of an Aladin Knowledge Pack.
+This directory contains the smallest practical example of an Aladdin Knowledge Pack.
 
 == Purpose
 
 The example demonstrates:
 
-* a valid `aladin-pack.yml` manifest
+* a valid `aladdin-pack.yml` manifest
 * one source record
 * one precise evidence record
 * one source-backed claim
@@ -27,7 +27,7 @@ The example demonstrates:
 ----
 minimal-pack/
 ├── README.adoc
-├── aladin-pack.yml
+├── aladdin-pack.yml
 ├── claims/
 │   └── claims.jsonl
 ├── sources/
@@ -69,19 +69,19 @@ Every file uses JSON Lines: exactly one JSON object per line.
 
 [source,text]
 ----
-source:aladin.spec.readme
+source:aladdin.spec.readme
         │
         │ located in
         ▼
-evidence:aladin.spec.readme.knowledge-pack-definition.001
+evidence:aladdin.spec.readme.knowledge-pack-definition.001
         │
         │ supports
         ▼
-claim:aladin.knowledge-pack.artifact.001
+claim:aladdin.knowledge-pack.artifact.001
         │
         │ is about
         ▼
-entity:aladin.knowledge-pack
+entity:aladdin.knowledge-pack
 ----
 
 Sources and evidence are kept separate on purpose. A source identifies an

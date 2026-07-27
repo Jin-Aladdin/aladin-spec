@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Jin-Aladdin/aladin-spec/blob/main/schemas/manifest.schema.json",
-  "title": "Aladin Knowledge Pack Manifest",
-  "description": "Normative manifest schema for an Aladin Knowledge Pack.",
+  "$id": "https://github.com/Jin-Aladdin/aladdin-spec/blob/main/schemas/manifest.schema.json",
+  "title": "Aladdin Knowledge Pack Manifest",
+  "description": "Normative manifest schema for an Aladdin Knowledge Pack.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -85,7 +85,7 @@
       "properties": {
         "name": {
           "type": "string",
-          "const": "aladin-knowledge-pack"
+          "const": "aladdin-knowledge-pack"
         },
         "version": {
           "$ref": "#/$defs/semanticVersion"

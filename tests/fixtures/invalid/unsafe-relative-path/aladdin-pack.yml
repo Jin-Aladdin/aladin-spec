@@ -1,15 +1,15 @@
 schema_version: "0.1.0"
 
 pack:
-  id: aladin-kb-unsafe-relative-path
-  name: Aladin Kb Unsafe Relative Path
+  id: aladdin-kb-unsafe-relative-path
+  name: Aladdin Kb Unsafe Relative Path
   version: "0.1.0"
   description: >-
-    Fixture Knowledge Pack used by the Aladin specification test suite to
+    Fixture Knowledge Pack used by the Aladdin specification test suite to
     exercise one specific validation rule.
 
 specification:
-  name: aladin-knowledge-pack
+  name: aladdin-knowledge-pack
   version: "0.1.0"
   compatibility:
     minimum_runtime: "0.1.0"

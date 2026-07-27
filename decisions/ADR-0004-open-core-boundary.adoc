@@ -18,18 +18,18 @@ Jin-Aladdin
 | 2026-07-27
 
 | Decision owners
-| Aladin Spec Maintainers
+| Aladdin Spec Maintainers
 
 | Specification phase
 | Pre-Alpha
 
 | Related components
-| Aladin Spec, Knowledge Packs, Validator, Registry, Gateway, SDKs, The Lamp
+| Aladdin Spec, Knowledge Packs, Validator, Registry, Gateway, SDKs, The Lamp
 |===
 
 == Context
 
-Aladin is intended to become both:
+Aladdin is intended to become both:
 
 * an open technical ecosystem
 * a commercially sustainable AI platform
@@ -49,7 +49,7 @@ A vague open-core model would create distrust and technical lock-in.
 
 == Problem
 
-Aladin needs to protect its commercial advantages without weakening the usefulness of the public ecosystem.
+Aladdin needs to protect its commercial advantages without weakening the usefulness of the public ecosystem.
 
 The architecture must avoid two opposite failures.
 
@@ -78,7 +78,7 @@ The project therefore requires an explicit open-core architecture.
 
 == Decision
 
-Aladin will use an open-core model.
+Aladdin will use an open-core model.
 
 The public core defines the portable knowledge ecosystem.
 
@@ -86,7 +86,7 @@ Advanced intelligence, hosted services, commercial orchestration and proprietary
 
 [source,text]
 ----
-                        ALADIN ECOSYSTEM
+                     ALADDIN ECOSYSTEM
 
 ┌──────────────────────────────────────────────────────┐
 │                    PUBLIC CORE                       │
@@ -109,7 +109,7 @@ Advanced intelligence, hosted services, commercial orchestration and proprietary
 
 The public core must remain independently usable.
 
-A user must not require access to The Lamp or another proprietary Aladin service to:
+A user must not require access to The Lamp or another proprietary Aladdin service to:
 
 * create a Knowledge Pack
 * validate a Knowledge Pack
@@ -124,7 +124,7 @@ A user must not require access to The Lamp or another proprietary Aladin service
 
 The following components are intended to remain public.
 
-=== Aladin Specification
+=== Aladdin Specification
 
 The specification defines:
 
@@ -239,7 +239,7 @@ Examples may include:
 * MCP
 * AI engineering fundamentals
 
-Not every Aladin dataset must be public.
+Not every Aladdin dataset must be public.
 
 == Proprietary Components
 
@@ -265,7 +265,7 @@ It may contain:
 
 === Hosted Control Plane
 
-A commercial Aladin service may provide:
+A commercial Aladdin service may provide:
 
 * hosted package management
 * private registries
@@ -280,7 +280,7 @@ A commercial Aladin service may provide:
 
 === Proprietary Datasets
 
-Aladin may maintain datasets that cannot be published because of:
+Aladdin may maintain datasets that cannot be published because of:
 
 * licensing restrictions
 * commercial agreements
@@ -343,7 +343,7 @@ It must not silently redefine required public semantics.
 
 A valid public Knowledge Pack must remain usable without:
 
-* an Aladin cloud account
+* an Aladdin cloud account
 * a paid subscription
 * a private API key
 * The Lamp
@@ -357,14 +357,14 @@ They must not invalidate the open portability promise.
 
 == Compatibility Rule
 
-A proprietary Aladin implementation may add fields under a clearly namespaced extension.
+A proprietary Aladdin implementation may add fields under a clearly namespaced extension.
 
 Example:
 
 [source,yaml]
 ----
 extensions:
-  ai.aladin.lamp:
+  ai.aladdin.lamp:
     routing_profile: advanced
     context_policy: adaptive-v2
 ----
@@ -392,19 +392,19 @@ Proposed naming:
 | Name
 | Meaning
 
-| Aladin Spec
+| Aladdin Spec
 | Public technical specification.
 
-| Aladin Knowledge Pack
+| Aladdin Knowledge Pack
 | Portable knowledge artifact following the public specification.
 
-| Aladin Registry
+| Aladdin Registry
 | Registry protocol or implementation for discovering Knowledge Packs.
 
-| Aladin Gateway
+| Aladdin Gateway
 | Runtime that loads and serves Knowledge Packs.
 
-| Aladin SDK
+| Aladdin SDK
 | Public development libraries.
 
 | The Lamp
@@ -486,7 +486,7 @@ Components that do not grant those rights must be described accurately as:
 * private
 * commercially licensed
 
-Aladin must not use misleading licensing language.
+Aladdin must not use misleading licensing language.
 
 == Community Contributions
 
@@ -501,7 +501,7 @@ Public repositories should define:
 * governance process
 * whether contributor license agreements are required
 
-A contribution to the public specification does not grant the contributor ownership of proprietary Aladin services.
+A contribution to the public specification does not grant the contributor ownership of proprietary Aladdin services.
 
 Likewise, accepting a public contribution must not silently relicense the contributor's work outside the repository license.
 
@@ -537,15 +537,15 @@ A company may:
 * sell support
 * integrate the format into its products
 
-Use of Aladin trademarks, logos and official certification marks may be governed separately from the open-source license.
+Use of Aladdin trademarks, logos and official certification marks may be governed separately from the open-source license.
 
 == Certification
 
 Future certification may distinguish:
 
-* Aladin Compatible
-* Aladin Verified
-* Official Aladin
+* Aladdin Compatible
+* Aladdin Verified
+* Official Aladdin
 * Powered by The Lamp
 
 Certification rules must not alter the underlying open-source rights.
@@ -660,7 +660,7 @@ Before the first stable release, the project should create:
 * compatibility certification rules
 * a clear description of The Lamp
 
-The README of every Aladin repository should state whether the component is:
+The README of every Aladdin repository should state whether the component is:
 
 * public specification
 * open-source implementation
@@ -675,4 +675,4 @@ ____
 The knowledge standard must remain open and independently usable. The intelligence built on top of it may remain proprietary.
 ____
 
-Aladin adopts an open-core architecture with a portable public knowledge ecosystem and an optional proprietary intelligence layer.
+Aladdin adopts an open-core architecture with a portable public knowledge ecosystem and an optional proprietary intelligence layer.

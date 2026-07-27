@@ -18,7 +18,7 @@ Jin-Aladdin
 | 2026-07-27
 
 | Decision owners
-| Aladin Spec Maintainers
+| Aladdin Spec Maintainers
 
 | Specification phase
 | Pre-Alpha
@@ -42,7 +42,7 @@ standards are superseded, legal texts are amended. A pack that was accurate at
 build time silently becomes wrong. A repository whose only maintainer stops
 working on it becomes a stale artifact that still claims authority.
 
-The project intends Aladin to work as a durable knowledge legacy. Knowledge
+The project intends Aladdin to work as a durable knowledge legacy. Knowledge
 Packs should keep checking their declared sources, keep their provenance
 current and keep publishing verified versions after the original creator is no
 longer actively present.
@@ -69,12 +69,12 @@ Without such a rule:
 
 == Decision
 
-Aladin defines *autonomous knowledge maintenance* as a first-class part of the
+Aladdin defines *autonomous knowledge maintenance* as a first-class part of the
 specification.
 
 [quote]
 ____
-Aladin Knowledge Packs must be capable of maintaining, validating, versioning
+Aladdin Knowledge Packs must be capable of maintaining, validating, versioning
 and publishing their knowledge through auditable automation without depending
 on the continuous presence of their original creator.
 ____
@@ -85,7 +85,7 @@ stays active.
 
 == Binding Rules
 
-The following rules are normative for the Aladin ecosystem.
+The following rules are normative for the Aladdin ecosystem.
 
 . Every Knowledge Pack repository declares a machine-readable update policy.
   A repository without an update policy has no automated maintenance.
@@ -127,7 +127,7 @@ to the specification repository would be a category error.
 [cols="1,2,2",options="header"]
 |===
 | Concern
-| `aladin-spec`
+| `aladdin-spec`
 | Knowledge Pack repositories
 
 | Automatic source synchronization
@@ -475,7 +475,7 @@ metadata only and must be recognizable as such.
 A heartbeat reduces risk. It is not a guarantee that a hosted CI platform will
 run forever.
 
-A later central `aladin-sentinel` repository inventories known Knowledge Pack
+A later central `aladdin-sentinel` repository inventories known Knowledge Pack
 repositories, checks the last successful update, validation and release, detects
 disabled or failed automation, triggers recovery through `repository_dispatch`,
 publishes status reports and opens failure issues.
@@ -561,7 +561,7 @@ in `SUCCESSION.adoc`, `GOVERNANCE.adoc`, `SECURITY.adoc` and `MAINTAINERS.adoc`.
 
 No secret value is ever stored in documentation.
 
-Aladin repositories should not remain permanently bound to a single personal
+Aladdin repositories should not remain permanently bound to a single personal
 account. The recommended target is a GitHub organization with at least two owner
 roles, separated maintainer and bot permissions, an organization-owned GitHub
 App, protected branches or rulesets, documented succession, central workflow
@@ -608,7 +608,7 @@ attention, which is exactly the failure this ADR addresses.
 === Fully Automatic Publication After a Successful Fetch
 
 Rejected. It converts every upstream defacement, licensing change or poisoned
-document into published Aladin knowledge.
+document into published Aladdin knowledge.
 
 === A Language Model Decides What to Publish
 
@@ -648,7 +648,7 @@ Implementation proceeds in this order:
 . This ADR.
 . `specifications/automation-v1.adoc`, the first automation specification.
 . `schemas/update-policy.schema.json`.
-. Specification validation, release and health workflows for `aladin-spec`.
+. Specification validation, release and health workflows for `aladdin-spec`.
 . Continuation of the canonical schema series.
 . A Knowledge Pack repository template.
 . A minimal deterministic demo updater running against local fixtures or one
@@ -663,7 +663,7 @@ fully tested.
 
 [quote]
 ____
-Aladin Knowledge Packs must be capable of maintaining, validating, versioning
+Aladdin Knowledge Packs must be capable of maintaining, validating, versioning
 and publishing their knowledge through auditable automation without depending
 on the continuous presence of their original creator.
 
@@ -672,4 +672,4 @@ preserves the last provably valid knowledge version.
 ____
 
 Autonomous knowledge maintenance and succession are accepted as foundational
-architectural components of the Aladin ecosystem.
+architectural components of the Aladdin ecosystem.

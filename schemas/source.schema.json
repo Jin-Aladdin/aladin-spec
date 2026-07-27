@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Jin-Aladdin/aladin-spec/blob/main/schemas/source.schema.json",
-  "title": "Aladin Knowledge Source",
-  "description": "Normative schema for a source record referenced by claims, evidence, entities, relations and other Aladin Knowledge Pack objects.",
+  "$id": "https://github.com/Jin-Aladdin/aladdin-spec/blob/main/schemas/source.schema.json",
+  "title": "Aladdin Knowledge Source",
+  "description": "Normative schema for a source record referenced by claims, evidence, entities, relations and other Aladdin Knowledge Pack objects.",
   "type": "object",
   "additionalProperties": false,
   "required": [

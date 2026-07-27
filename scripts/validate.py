@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reference validator for the Aladin Knowledge Pack specification.
+"""Reference validator for the Aladdin Knowledge Pack specification.
 
 The validator checks schema files, pack manifests and JSON Lines
 collections without ever executing Knowledge Pack content.
@@ -36,7 +36,7 @@ from jsonschema.validators import validator_for
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 
-MANIFEST_FILENAME = "aladin-pack.yml"
+MANIFEST_FILENAME = "aladdin-pack.yml"
 MANIFEST_SCHEMA = "manifest.schema.json"
 
 #: Canonical object identifier prefix per manifest content type.

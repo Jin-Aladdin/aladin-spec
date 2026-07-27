@@ -18,7 +18,7 @@ Jin-Aladdin
 | 2026-07-27
 
 | Decision owners
-| Aladin Spec Maintainers
+| Aladdin Spec Maintainers
 
 | Specification phase
 | Pre-Alpha
@@ -29,7 +29,7 @@ Jin-Aladdin
 
 == Context
 
-The Aladin ecosystem is expected to evolve over many years.
+The Aladdin ecosystem is expected to evolve over many years.
 
 Knowledge Packs may be created with different:
 
@@ -42,7 +42,7 @@ Knowledge Packs may be created with different:
 * embedding models
 * build pipelines
 
-External systems may also provide compatible knowledge that was not originally authored as an Aladin Knowledge Pack.
+External systems may also provide compatible knowledge that was not originally authored as an Aladdin Knowledge Pack.
 
 Without a stable internal model, every gateway, retriever, re-ranker and AI runtime would need to understand every historical and external format directly.
 
@@ -75,7 +75,7 @@ The ecosystem needs one normalized internal representation that:
 
 == Decision
 
-Aladin will define a *Canonical Knowledge Model*, abbreviated as *CKM*.
+Aladdin will define a *Canonical Knowledge Model*, abbreviated as *CKM*.
 
 Every supported Knowledge Pack format is converted into the CKM before it is indexed, retrieved, re-ranked or supplied to an AI runtime.
 
@@ -85,7 +85,7 @@ Knowledge Pack Spec 0.x ─┐
 Knowledge Pack Spec 1.x ─┤
 Knowledge Pack Spec 2.x ─┼──► Compatibility Adapter ──► CKM
 External Compatible Data ┤
-Legacy Aladin Data ──────┘
+Legacy Aladdin Data ──────┘
 ----
 
 The CKM is a logical model. It does not require one physical database, serialization format or programming language.
@@ -477,7 +477,7 @@ The CKM itself will be versioned independently from individual Knowledge Packs.
 [source,yaml]
 ----
 canonical_model:
-  name: aladin-ckm
+  name: aladdin-ckm
   version: 0.1.0
 ----
 
@@ -559,7 +559,7 @@ The first reference implementation should demonstrate:
 
 [quote]
 ____
-Every supported knowledge format is translated into one canonical model before it enters Aladin's retrieval and intelligence pipeline.
+Every supported knowledge format is translated into one canonical model before it enters Aladdin's retrieval and intelligence pipeline.
 ____
 
-The Canonical Knowledge Model is accepted as a foundational architectural component of the Aladin ecosystem.
+The Canonical Knowledge Model is accepted as a foundational architectural component of the Aladdin ecosystem.

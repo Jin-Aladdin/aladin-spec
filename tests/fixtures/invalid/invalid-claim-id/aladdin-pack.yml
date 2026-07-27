@@ -1,23 +1,15 @@
 schema_version: "0.1.0"
 
 pack:
-  id: aladin-kb-example
-  name: Aladin Example Knowledge Pack
+  id: aladdin-kb-invalid-claim-id
+  name: Aladdin Kb Invalid Claim Id
   version: "0.1.0"
   description: >-
-    Minimal reference Knowledge Pack used to demonstrate the Aladin manifest,
-    source provenance, precise evidence and declarative artifact structure.
-  homepage: https://github.com/Jin-Aladdin/aladin-spec
-  repository: https://github.com/Jin-Aladdin/aladin-spec
-  keywords:
-    - aladin
-    - example
-    - knowledge-pack
-    - provenance
-    - evidence
+    Fixture Knowledge Pack used by the Aladdin specification test suite to
+    exercise one specific validation rule.
 
 specification:
-  name: aladin-knowledge-pack
+  name: aladdin-knowledge-pack
   version: "0.1.0"
   compatibility:
     minimum_runtime: "0.1.0"
@@ -26,8 +18,7 @@ specification:
 
 content:
   domains:
-    - example
-    - knowledge-packs
+    - test
   content_types:
     - claims
     - sources

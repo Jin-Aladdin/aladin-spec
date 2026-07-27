@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Jin-Aladdin/aladin-spec/blob/main/schemas/claim.schema.json",
-  "title": "Aladin Knowledge Claim",
-  "description": "Normative schema for a canonical claim record in an Aladin Knowledge Pack. A claim represents a definition, fact, procedure, observation, interpretation, hypothesis, warning, constraint or recommendation.",
+  "$id": "https://github.com/Jin-Aladdin/aladdin-spec/blob/main/schemas/claim.schema.json",
+  "title": "Aladdin Knowledge Claim",
+  "description": "Normative schema for a canonical claim record in an Aladdin Knowledge Pack. A claim represents a definition, fact, procedure, observation, interpretation, hypothesis, warning, constraint or recommendation.",
   "type": "object",
   "additionalProperties": false,
   "required": [

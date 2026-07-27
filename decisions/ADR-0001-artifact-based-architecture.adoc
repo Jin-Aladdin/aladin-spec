@@ -18,7 +18,7 @@ Jin-Aladdin
 | 2026-07-27
 
 | Decision owners
-| Aladin Spec Maintainers
+| Aladdin Spec Maintainers
 
 | Specification phase
 | Pre-Alpha
@@ -29,9 +29,9 @@ Jin-Aladdin
 
 == Context
 
-The Aladin ecosystem is intended to support hundreds or thousands of independent knowledge domains.
+The Aladdin ecosystem is intended to support hundreds or thousands of independent knowledge domains.
 
-An early design considered allowing every Knowledge Pack repository to operate its own API server and Docker container. Under that model, `aladin-kb-linux`, `aladin-kb-docker`, `aladin-kb-postgresql` and every other pack would become a separate active service.
+An early design considered allowing every Knowledge Pack repository to operate its own API server and Docker container. Under that model, `aladdin-kb-linux`, `aladdin-kb-docker`, `aladdin-kb-postgresql` and every other pack would become a separate active service.
 
 Most Knowledge Packs primarily contain structured and relatively static knowledge. They do not require an independent permanently running server.
 
@@ -53,7 +53,7 @@ The architecture must support large numbers of packs while preserving independen
 
 == Decision
 
-Aladin Knowledge Packs will be distributed as versioned data artifacts.
+Aladdin Knowledge Packs will be distributed as versioned data artifacts.
 
 A Knowledge Pack repository is a source and build project. It is not required to operate as a permanent API service.
 
@@ -119,10 +119,10 @@ A central gateway or compatible runtime may load many Knowledge Pack artifacts.
 
 [source,text]
 ----
-                 ┌── aladin-kb-linux artifact
-                 ├── aladin-kb-bash artifact
-Aladin Gateway ──┼── aladin-kb-docker artifact
-                 ├── aladin-kb-postgresql artifact
+                 ┌── aladdin-kb-linux artifact
+                 ├── aladdin-kb-bash artifact
+Aladdin Gateway ──┼── aladdin-kb-docker artifact
+                 ├── aladdin-kb-postgresql artifact
                  └── additional Knowledge Packs
 ----
 
@@ -155,9 +155,9 @@ A published artifact must not be silently modified. Any content change requires 
 
 [source,text]
 ----
-aladin-kb-docker 1.2.0
-aladin-kb-docker 1.2.1
-aladin-kb-docker 1.3.0
+aladdin-kb-docker 1.2.0
+aladdin-kb-docker 1.2.1
+aladdin-kb-docker 1.3.0
 ----
 
 Historical versions may remain available for reproducibility, auditability, rollback, compatibility testing and incident investigation.
@@ -205,7 +205,7 @@ Knowledge Pack repositories do not define independent production API deployments
 
 API responsibility belongs to:
 
-* the Aladin Gateway
+* the Aladdin Gateway
 * compatible third-party runtimes
 * local knowledge runtimes
 * enterprise implementations
@@ -290,7 +290,7 @@ Rejected because the public specification must remain usable locally, offline, s
 
 == Compatibility
 
-This decision applies to the first Aladin Knowledge Pack specification series.
+This decision applies to the first Aladdin Knowledge Pack specification series.
 
 Future versions may introduce optional services or extensions, but the core portable Knowledge Pack must remain usable as a data artifact.
 
@@ -308,7 +308,7 @@ The first reference implementation should prove this decision with at least two 
 
 [quote]
 ____
-An Aladin Knowledge Pack is a versioned data product, not a permanently running microservice.
+An Aladdin Knowledge Pack is a versioned data product, not a permanently running microservice.
 ____
 
-This principle is accepted as a foundational architectural rule of the Aladin ecosystem.
+This principle is accepted as a foundational architectural rule of the Aladdin ecosystem.

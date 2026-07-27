@@ -1,7 +1,7 @@
-= Aladin Knowledge Pack Specification
+= Aladdin Knowledge Pack Specification
 Jin-Aladdin
 :description: Open specification for portable, verifiable and versioned knowledge packs for trusted AI systems.
-:keywords: aladin, artificial intelligence, knowledge pack, knowledge base, RAG, MCP, knowledge graph, AI agents
+:keywords: aladdin, artificial intelligence, knowledge pack, knowledge base, RAG, MCP, knowledge graph, AI agents
 :toc: macro
 :toc-title: Contents
 :toclevels: 3
@@ -15,10 +15,10 @@ Jin-Aladdin
 [.text-center]
 image:https://img.shields.io/badge/STATUS-PRE--ALPHA-F59E0B?style=for-the-badge[Project status: Pre-Alpha]
 image:https://img.shields.io/badge/SPEC-0.1.0--DRAFT-7C3AED?style=for-the-badge[Specification version: 0.1.0 Draft]
-image:https://img.shields.io/github/license/Jin-Aladdin/aladin-spec?style=for-the-badge[License,link=https://github.com/Jin-Aladdin/aladin-spec/blob/main/LICENSE]
-image:https://img.shields.io/github/issues/Jin-Aladdin/aladin-spec?style=for-the-badge[Open issues,link=https://github.com/Jin-Aladdin/aladin-spec/issues]
-image:https://img.shields.io/github/stars/Jin-Aladdin/aladin-spec?style=for-the-badge[GitHub stars,link=https://github.com/Jin-Aladdin/aladin-spec/stargazers]
-image:https://img.shields.io/github/last-commit/Jin-Aladdin/aladin-spec?style=for-the-badge[Last commit]
+image:https://img.shields.io/github/license/Jin-Aladdin/aladdin-spec?style=for-the-badge[License,link=https://github.com/Jin-Aladdin/aladdin-spec/blob/main/LICENSE]
+image:https://img.shields.io/github/issues/Jin-Aladdin/aladdin-spec?style=for-the-badge[Open issues,link=https://github.com/Jin-Aladdin/aladdin-spec/issues]
+image:https://img.shields.io/github/stars/Jin-Aladdin/aladdin-spec?style=for-the-badge[GitHub stars,link=https://github.com/Jin-Aladdin/aladdin-spec/stargazers]
+image:https://img.shields.io/github/last-commit/Jin-Aladdin/aladdin-spec?style=for-the-badge[Last commit]
 image:https://img.shields.io/badge/DOCS-ASCIIDOC-1F6F8B?style=for-the-badge[Documentation format: AsciiDoc]
 
 [.text-center]
@@ -27,14 +27,14 @@ image:https://img.shields.io/badge/DOCS-ASCIIDOC-1F6F8B?style=for-the-badge[Docu
 
 [.text-center]
 --
-Aladin defines an open format for packaging structured, source-backed and machine-readable knowledge.
+Aladdin defines an open format for packaging structured, source-backed and machine-readable knowledge.
 
 Knowledge Packs can be validated, versioned, distributed and consumed by AI systems without requiring a permanent API server for every knowledge domain.
 --
 
 [IMPORTANT]
 ====
-Aladin Spec is currently in *Pre-Alpha*.
+Aladdin Spec is currently in *Pre-Alpha*.
 
 The architecture and data formats are under active design. No stable `1.0.0` specification has been released.
 ====
@@ -45,7 +45,7 @@ toc::[]
 
 Modern AI systems often depend on knowledge locked inside a specific application, database, cloud provider or model ecosystem.
 
-Aladin separates knowledge from the system that consumes it.
+Aladdin separates knowledge from the system that consumes it.
 
 The specification defines portable *Knowledge Packs* that can be:
 
@@ -65,7 +65,7 @@ Each knowledge repository is a source project that produces a validated and opti
 
 == What Is a Knowledge Pack?
 
-An Aladin Knowledge Pack is a versioned, machine-readable collection of structured knowledge and supporting metadata.
+An Aladdin Knowledge Pack is a versioned, machine-readable collection of structured knowledge and supporting metadata.
 
 A pack may contain:
 
@@ -199,10 +199,10 @@ PostgreSQL inside a Docker container?
 
 This request may involve:
 
-* `aladin-kb-bash`
-* `aladin-kb-linux`
-* `aladin-kb-docker`
-* `aladin-kb-postgresql`
+* `aladdin-kb-bash`
+* `aladdin-kb-linux`
+* `aladdin-kb-docker`
+* `aladdin-kb-postgresql`
 
 The runtime should not blindly query every available package.
 
@@ -248,7 +248,7 @@ The first specification series is planned to define:
 | Meaning
 
 | Official
-| Maintained or explicitly approved by the official Aladin project.
+| Maintained or explicitly approved by the official Aladdin project.
 
 | Verified
 | Passed defined validation, provenance and quality requirements.
@@ -289,7 +289,7 @@ Knowledge Packs are declarative by default. Executable extensions, if ever intro
 
 == Compatibility and Versioning
 
-The Aladin specification follows Semantic Versioning.
+The Aladdin specification follows Semantic Versioning.
 
 [source,text]
 ----
@@ -331,7 +331,7 @@ The specification does not require publication of proprietary components such as
 
 [source,text]
 ----
-aladin-spec/
+aladdin-spec/
 ├── README.adoc
 ├── LICENSE
 ├── CHANGELOG.adoc
@@ -475,7 +475,7 @@ Third-party datasets, documents and knowledge sources used by future Knowledge P
 
 [quote]
 ____
-Aladin should not merely retrieve text.
+Aladdin should not merely retrieve text.
 
 It should reveal where knowledge came from, how trustworthy it is, which version was used and whether the result can be independently verified.
 ____
@@ -484,7 +484,7 @@ ____
 
 [.text-center]
 --
-*ALADIN*
+*ALADDIN*
 
 *Portable knowledge. Verifiable sources. Trusted intelligence.*
 

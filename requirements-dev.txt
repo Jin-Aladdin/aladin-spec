@@ -1,4 +1,4 @@
-# Development dependencies for the Aladin Spec reference validator.
+# Development dependencies for the Aladdin Spec reference validator.
 #
 # These tools run in the source repository and in CI only. They are never
 # part of a published Knowledge Pack artifact (ADR-0003).

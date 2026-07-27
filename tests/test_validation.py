@@ -1,4 +1,4 @@
-"""Test suite for the Aladin Spec reference validator.
+"""Test suite for the Aladdin Spec reference validator.
 
 The suite covers three levels:
 

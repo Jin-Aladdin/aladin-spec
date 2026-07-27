@@ -1,15 +1,15 @@
 schema_version: "0.1.0"
 
 pack:
-  id: aladin-kb-merged-entity-without-target
-  name: Aladin Kb Merged Entity Without Target
+  id: aladdin-kb-unknown-core-field
+  name: Aladdin Kb Unknown Core Field
   version: "0.1.0"
   description: >-
-    Fixture Knowledge Pack used by the Aladin specification test suite to
+    Fixture Knowledge Pack used by the Aladdin specification test suite to
     exercise one specific validation rule.
 
 specification:
-  name: aladin-knowledge-pack
+  name: aladdin-knowledge-pack
   version: "0.1.0"
   compatibility:
     minimum_runtime: "0.1.0"

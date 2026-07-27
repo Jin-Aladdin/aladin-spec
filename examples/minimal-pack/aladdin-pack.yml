@@ -1,15 +1,23 @@
 schema_version: "0.1.0"
 
 pack:
-  id: aladin-kb-missing-source
-  name: Aladin Kb Missing Source
+  id: aladdin-kb-example
+  name: Aladdin Example Knowledge Pack
   version: "0.1.0"
   description: >-
-    Fixture Knowledge Pack used by the Aladin specification test suite to
-    exercise one specific validation rule.
+    Minimal reference Knowledge Pack used to demonstrate the Aladdin manifest,
+    source provenance, precise evidence and declarative artifact structure.
+  homepage: https://github.com/Jin-Aladdin/aladdin-spec
+  repository: https://github.com/Jin-Aladdin/aladdin-spec
+  keywords:
+    - aladdin
+    - example
+    - knowledge-pack
+    - provenance
+    - evidence
 
 specification:
-  name: aladin-knowledge-pack
+  name: aladdin-knowledge-pack
   version: "0.1.0"
   compatibility:
     minimum_runtime: "0.1.0"
@@ -18,7 +26,8 @@ specification:
 
 content:
   domains:
-    - test
+    - example
+    - knowledge-packs
   content_types:
     - claims
     - sources
