@@ -163,9 +163,24 @@ rotation interval. A secret without an owner is an orphan by construction.
 
 Partly in place.
 
+=== Verified by Restore
+
+The backup was restored from the bundle alone, with no access to GitHub and
+no original working copy. The result: 59 commits, the tag, 282 files, and all
+four gates passing inside the restored repository, including its full test
+suite.
+
+That is the claim this section is allowed to make, because it was tested
+rather than assumed.
+
+The same test found the interval wrong. The newest backup was already missing
+31 commits, six of seven tags and four core files, because it ran monthly
+while the repository changed by the hour. A backup interval has to match how
+fast the thing changes, not the calendar.
+
 === What Exists
 
-`backup-mirror.yml` runs monthly and on dispatch. It produces a git bundle
+`backup-mirror.yml` runs weekly, on every release tag, and on dispatch. It produces a git bundle
 containing the full history, every branch and every tag, then proves the bundle
 is usable by cloning it and comparing the restored tags and HEAD against the
 source. A backup nobody restored is a belief, not a backup.

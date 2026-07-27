@@ -9,9 +9,17 @@ name: Backup and mirror
 # The second remote is optional and degrades cleanly when it is not
 # configured, so this workflow is useful before any mirror exists.
 on:
+  # A restore test showed why monthly alone is not enough: the newest backup
+  # was two and a half hours old in wall-clock terms and already missing 31
+  # commits, six of seven tags and four core files. A backup interval has to
+  # match how fast the thing changes, not the calendar.
   schedule:
-    # Monthly, away from minute 0 to stay out of the congestion window.
-    - cron: "43 3 2 * *"
+    - cron: "43 3 * * 0"
+  # Every release is a point someone may need to return to, so each one gets
+  # its own backup rather than waiting for the next Sunday.
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       skip_mirror:
