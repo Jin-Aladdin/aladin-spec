@@ -1,0 +1,46 @@
+= Minimal Aladin Knowledge Pack
+Jin-Aladdin
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+
+This directory contains the smallest practical example of an Aladin Knowledge Pack.
+
+== Purpose
+
+The example demonstrates:
+
+* a valid `aladin-pack.yml` manifest
+* one source record
+* one source-backed claim
+* declarative content only
+* relative entry-point paths
+* explicit language and license metadata
+* an experimental lifecycle state
+
+== Structure
+
+[source,text]
+----
+minimal-pack/
+├── README.adoc
+├── aladin-pack.yml
+├── claims/
+│   └── claims.jsonl
+└── sources/
+    └── sources.jsonl
+----
+
+== Important
+
+This example targets the draft `0.1.0` specification.
+
+The manifest is intended to validate against:
+
+[source,text]
+----
+schemas/manifest.schema.json
+----
+
+The claim and source records are illustrative until their dedicated normative schemas are added.
