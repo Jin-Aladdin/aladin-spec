@@ -40,7 +40,7 @@ jobs:
           # Immutable by construction: a release tag cannot change under this
           # repository the way a branch can. Raise it deliberately when a newer
           # specification version is adopted.
-          ref: v0.1.0
+          ref: v0.2.0
           path: .aladdin-spec
 
       - name: Set up Python

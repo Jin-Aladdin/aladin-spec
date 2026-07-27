@@ -17,7 +17,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 SCHEMAS = REPOSITORY_ROOT / "schemas"
 
 #: The specification version these schemas belong to.
-SPECIFICATION_VERSION = "0.1.0"
+SPECIFICATION_VERSION = "0.2.0"
 
 ID_PATTERN = re.compile(
     r"^https://raw\.githubusercontent\.com/Jin-Aladdin/aladdin-spec/"
