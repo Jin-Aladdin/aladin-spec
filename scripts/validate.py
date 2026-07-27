@@ -222,8 +222,21 @@ def iter_references(record: Any) -> Iterator[str]:
 # --------------------------------------------------------------------------
 
 
-def check_relative_path(value: str, pack_dir: Path, boundary: str = "pack") -> str | None:
-    """Return an error message when ``value`` is not a safe contained path."""
+def check_relative_path(
+    value: str,
+    pack_dir: Path,
+    boundary: str = "pack",
+    must_exist: bool = True,
+) -> str | None:
+    """Return an error message when ``value`` is not a safe contained path.
+
+    ``must_exist`` separates two different questions. Path safety is a
+    property of the declaration and is always checked. Whether the target is
+    present is a property of the working tree: for a manifest entry point it
+    is a configuration error, but for a source that a running update engine
+    is about to retrieve it is a retrieval failure the engine must classify
+    and retry itself.
+    """
     if not value:
         return "path must not be empty"
     if "\\" in value:
@@ -236,6 +249,8 @@ def check_relative_path(value: str, pack_dir: Path, boundary: str = "pack") -> s
     resolved = (pack_dir / candidate).resolve()
     if not resolved.is_relative_to(pack_dir.resolve()):
         return f"path escapes the {boundary} directory"
+    if not must_exist:
+        return None
     if not resolved.exists():
         return "declared path does not exist"
     if not resolved.is_file():
@@ -268,12 +283,20 @@ def validate_policy(
     schemas: dict[str, dict],
     root: Path,
     manifest: dict | None = None,
+    require_source_paths: bool = True,
 ) -> list[Finding]:
     """Validate an automation update policy.
 
     Beyond the schema, this checks the two invariants a schema cannot express:
     the policy must belong to the pack it sits in, and a static-file source
-    must point at a file that exists inside the repository.
+    path must stay inside the repository.
+
+    ``require_source_paths`` controls whether a declared source file must
+    already be present. Static validation wants that check, because a policy
+    pointing at a missing fixture is a configuration error. A running update
+    engine turns it off, because a source that disappeared is a retrieval
+    failure it must record, count and retry, not a reason to declare the whole
+    policy invalid.
     """
     rel = _relative(policy_path, root)
     policy, findings = load_yaml_mapping(policy_path, root)
@@ -318,7 +341,9 @@ def validate_policy(
 
         path_value = source.get("path")
         if isinstance(path_value, str):
-            problem = check_relative_path(path_value, root, boundary="repository")
+            problem = check_relative_path(
+                path_value, root, boundary="repository", must_exist=require_source_paths
+            )
             if problem:
                 findings.append(
                     Finding(rel, f"source {source_id} path {path_value!r}: {problem}")

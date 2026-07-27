@@ -13,6 +13,10 @@ __pycache__/
 build/
 dist/
 
+# Update engine working directories. Candidates are never committed directly;
+# they are promoted through a pull request or moved to automation/quarantine.
+.candidate/
+
 # Editor and OS noise
 .idea/
 .vscode/
