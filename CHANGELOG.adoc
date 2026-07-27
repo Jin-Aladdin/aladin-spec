@@ -10,7 +10,11 @@ The specification follows Semantic Versioning. While the series is `0.x`,
 breaking changes are possible between minor versions and every one of them is
 announced in this file.
 
-== Unreleased
+== 0.2.1, 2026-07-27
+
+A patch release so the templates can pin to a version that contains the
+scanner fix. No schema changed, so the `0.2.0` identifiers remain correct and
+are not moved.
 
 === Fixed
 
