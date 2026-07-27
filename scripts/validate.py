@@ -441,6 +441,7 @@ def validate_pack(pack_dir: Path, schemas: dict[str, dict], root: Path) -> list[
 
     findings.extend(_check_references(records, pack_dir, root))
     findings.extend(_check_conflicts(records, pack_dir, root))
+    findings.extend(_check_translations(records, pack_dir, root))
 
     policy_path = pack_dir / AUTOMATION_DIRECTORY / POLICY_FILENAME
     if policy_path.is_file():
@@ -481,6 +482,63 @@ def _check_conflicts(
                     record_id=record.get("id") if isinstance(record.get("id"), str) else None,
                 )
             )
+    return findings
+
+
+def _check_translations(
+    records: dict[str, list[tuple[int, dict]]], pack_dir: Path, root: Path
+) -> list[Finding]:
+    """A translation must change language and must not translate itself twice.
+
+    JSON Schema cannot compare two sibling values, so the language check lives
+    here. The duplicate check catches two records claiming to be the same
+    translation of the same field, which would make the target ambiguous.
+    """
+    rows = records.get("translations")
+    if not rows:
+        return []
+
+    rel = _relative(pack_dir / "translations" / "translations.jsonl", root)
+    findings: list[Finding] = []
+    seen: dict[tuple[str, str, str], int] = {}
+
+    for line_number, record in rows:
+        record_id = record.get("id") if isinstance(record.get("id"), str) else None
+        source_language = record.get("source_language")
+        target_language = record.get("target_language")
+
+        if (
+            isinstance(source_language, str)
+            and isinstance(target_language, str)
+            and source_language.lower() == target_language.lower()
+        ):
+            findings.append(
+                Finding(
+                    rel,
+                    f"source_language and target_language are both {source_language!r}; "
+                    "a translation must change language",
+                    line=line_number,
+                    record_id=record_id,
+                )
+            )
+
+        original = record.get("original_id")
+        field = record.get("field")
+        if isinstance(original, str) and isinstance(field, str) and isinstance(target_language, str):
+            key = (original, field, target_language.lower())
+            if key in seen:
+                findings.append(
+                    Finding(
+                        rel,
+                        f"duplicate translation of {original} field {field!r} into "
+                        f"{target_language}, first declared on line {seen[key]}",
+                        line=line_number,
+                        record_id=record_id,
+                    )
+                )
+            else:
+                seen[key] = line_number
+
     return findings
 
 

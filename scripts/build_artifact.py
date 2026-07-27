@@ -112,6 +112,19 @@ def build(
     checksum_path = out_dir / f"{archive_path.name}.sha256"
     checksum_path.write_text(f"{checksum}  {archive_path.name}\n", encoding="utf-8", newline="\n")
 
+    build_record: dict = {
+        "builder": f"build_artifact.py {BUILDER_VERSION}",
+        # Reproducibility is only a verifiable claim when the source commit is
+        # recorded: without it, nobody can rebuild the same tree and compare.
+        "reproducible": bool(source_commit),
+    }
+    if source_commit:
+        build_record["source_commit"] = source_commit
+    if validator_version:
+        build_record["validator_version"] = validator_version
+    if built_at:
+        build_record["built_at"] = built_at
+
     provenance = {
         "provenance_version": "0.1.0",
         "pack_id": pack_id,
@@ -119,18 +132,13 @@ def build(
         "specification": manifest.get("specification", {}),
         "artifact": {
             "name": archive_path.name,
+            "media_type": "application/zip",
             "sha256": checksum,
             "size_bytes": len(archive_bytes),
             "file_count": len(entries),
         },
         "files": entries,
-        "build": {
-            "builder": f"build_artifact.py {BUILDER_VERSION}",
-            "reproducible": True,
-            "source_commit": source_commit,
-            "validator_version": validator_version,
-            "built_at": built_at,
-        },
+        "build": build_record,
         "licenses": manifest.get("licenses", {}),
         "lifecycle": manifest.get("lifecycle", {}),
     }

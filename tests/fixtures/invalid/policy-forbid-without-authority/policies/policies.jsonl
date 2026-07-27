@@ -1,0 +1,1 @@
+{"id":"policy:fixture.content-license","kind":"usage-restriction","title":"Content license for fixture records","description":"All knowledge content in this fixture pack is published under CC-BY-4.0.","applies_to":{"scope":"pack"},"effect":"forbid","source_ids":["source:fixture.doc"],"status":"active","created_at":"2026-07-27T00:00:00Z"}

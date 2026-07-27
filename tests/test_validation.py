@@ -109,6 +109,12 @@ INVALID_CASES = [
     ("conflict-single-subject", "is too short"),
     ("conflict-contextual-without-scope", "'scope' is a required property"),
     ("conflict-model-discovery-without-model", "'model' is a required property"),
+    ("translation-same-language", "a translation must change language"),
+    ("translation-machine-without-model", "'model' is a required property"),
+    ("evaluation-pass-without-threshold", "'threshold' is a required property"),
+    ("evaluation-ratio-without-sample-size", "'sample_size' is a required property"),
+    ("policy-conditions-missing", "'conditions' is a required property"),
+    ("policy-forbid-without-authority", "'authority' is a required property"),
 ]
 
 

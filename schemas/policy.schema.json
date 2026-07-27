@@ -1,0 +1,561 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jin-Aladdin/aladdin-spec/blob/main/schemas/policy.schema.json",
+  "title": "Aladdin Knowledge Policy",
+  "description": "Normative schema for a policy record in an Aladdin Knowledge Pack. A policy states the licensing, access, jurisdictional and usage constraints that apply to knowledge content, so a consumer can decide what it is allowed to do with the material. This is a content policy attached to records; it is distinct from schemas/update-policy.schema.json, which governs a repository's automation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "kind",
+    "applies_to",
+    "effect",
+    "status",
+    "created_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^policy:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "minLength": 10,
+      "maxLength": 240,
+      "description": "Stable namespaced identifier beginning with policy:."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "license",
+        "attribution",
+        "access",
+        "jurisdiction",
+        "retention",
+        "redistribution",
+        "usage-restriction",
+        "privacy",
+        "export-control"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 300
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 4000
+    },
+    "applies_to": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope"
+      ],
+      "description": "What this policy governs. A policy with no stated scope cannot be enforced.",
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": [
+            "pack",
+            "collection",
+            "records",
+            "source"
+          ]
+        },
+        "collections": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "maxLength": 80
+          },
+          "uniqueItems": true,
+          "minItems": 1,
+          "maxItems": 20
+        },
+        "record_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/anyRecordId"
+          },
+          "uniqueItems": true,
+          "minItems": 1,
+          "maxItems": 1000
+        },
+        "source_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sourceId"
+          },
+          "uniqueItems": true,
+          "minItems": 1,
+          "maxItems": 200
+        }
+      }
+    },
+    "effect": {
+      "type": "string",
+      "enum": [
+        "permit",
+        "permit-with-conditions",
+        "restrict",
+        "forbid"
+      ],
+      "description": "What the policy does. permit-with-conditions requires the conditions to be stated."
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requirement"
+        ],
+        "properties": {
+          "requirement": {
+            "type": "string",
+            "enum": [
+              "attribution",
+              "share-alike",
+              "non-commercial",
+              "no-derivatives",
+              "notice-retention",
+              "named-recipients-only",
+              "no-training",
+              "no-redistribution",
+              "time-limited",
+              "region-limited"
+            ]
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 50
+    },
+    "license": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Required for a license policy.",
+      "required": [
+        "expression"
+      ],
+      "properties": {
+        "expression": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 200,
+          "description": "SPDX identifier or expression."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        "holder": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "attribution_text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Exact attribution string a consumer must reproduce."
+        }
+      }
+    },
+    "jurisdictions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 100
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 100,
+      "description": "Where the policy applies. Required for a jurisdiction policy."
+    },
+    "audience": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "public",
+          "authenticated",
+          "internal",
+          "named-partners",
+          "restricted"
+        ]
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 5
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Required for a retention policy.",
+      "properties": {
+        "max_retention_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 36500
+        },
+        "delete_on": {
+          "$ref": "#/$defs/dateOrDateTime"
+        },
+        "recall_obligation": {
+          "type": "boolean",
+          "description": "True when the upstream owner can require removal of already distributed copies."
+        }
+      }
+    },
+    "obligations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 5,
+        "maxLength": 500
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 50,
+      "description": "What a consumer must actively do, beyond what the conditions forbid."
+    },
+    "source_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sourceId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 100,
+      "description": "Where the policy comes from, for example the terms of use of the upstream source."
+    },
+    "authority": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 300,
+      "description": "Who set this policy: the upstream owner, the pack maintainer, a regulator or a contract."
+    },
+    "valid_from": {
+      "$ref": "#/$defs/dateOrDateTime"
+    },
+    "valid_until": {
+      "$ref": "#/$defs/dateOrDateTime"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "provisional",
+        "superseded",
+        "withdrawn"
+      ],
+      "description": "provisional means the constraint is believed to apply but has not been confirmed. A provisional policy must be treated as binding until it is confirmed or withdrawn."
+    },
+    "superseded_by": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/policyId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 100
+    },
+    "withdrawal_reason": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 2000
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 3000
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Namespaced extension data using reverse-DNS keys.",
+      "propertyNames": {
+        "pattern": "^[a-z0-9]+(?:\\.[a-z0-9-]+)+$"
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "description": "Conditional permission must state its conditions.",
+      "if": {
+        "properties": {
+          "effect": {
+            "const": "permit-with-conditions"
+          }
+        },
+        "required": [
+          "effect"
+        ]
+      },
+      "then": {
+        "required": [
+          "conditions"
+        ]
+      }
+    },
+    {
+      "description": "A restriction or prohibition must be explained and attributed.",
+      "if": {
+        "properties": {
+          "effect": {
+            "enum": [
+              "restrict",
+              "forbid"
+            ]
+          }
+        },
+        "required": [
+          "effect"
+        ]
+      },
+      "then": {
+        "required": [
+          "description",
+          "authority"
+        ]
+      }
+    },
+    {
+      "description": "A license policy must name the license.",
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "license"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "license"
+        ]
+      }
+    },
+    {
+      "description": "An attribution policy must supply the attribution text.",
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "attribution"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "license"
+        ],
+        "properties": {
+          "license": {
+            "required": [
+              "attribution_text"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "description": "A jurisdiction policy must name the jurisdictions.",
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "jurisdiction"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "jurisdictions"
+        ]
+      }
+    },
+    {
+      "description": "A retention policy must state the retention rule.",
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "retention"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "retention"
+        ]
+      }
+    },
+    {
+      "description": "An access policy must name its audience.",
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "access"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "audience"
+        ]
+      }
+    },
+    {
+      "description": "A record-scoped policy must name the records.",
+      "if": {
+        "properties": {
+          "applies_to": {
+            "properties": {
+              "scope": {
+                "const": "records"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          }
+        },
+        "required": [
+          "applies_to"
+        ]
+      },
+      "then": {
+        "properties": {
+          "applies_to": {
+            "required": [
+              "record_ids"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "description": "A source-scoped policy must name the sources.",
+      "if": {
+        "properties": {
+          "applies_to": {
+            "properties": {
+              "scope": {
+                "const": "source"
+              }
+            },
+            "required": [
+              "scope"
+            ]
+          }
+        },
+        "required": [
+          "applies_to"
+        ]
+      },
+      "then": {
+        "properties": {
+          "applies_to": {
+            "required": [
+              "source_ids"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "description": "A superseded policy must name its replacement.",
+      "if": {
+        "properties": {
+          "status": {
+            "const": "superseded"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "superseded_by"
+        ]
+      }
+    },
+    {
+      "description": "A withdrawn policy must say why.",
+      "if": {
+        "properties": {
+          "status": {
+            "const": "withdrawn"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "withdrawal_reason"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "policyId": {
+      "type": "string",
+      "pattern": "^policy:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "sourceId": {
+      "type": "string",
+      "pattern": "^source:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "anyRecordId": {
+      "type": "string",
+      "pattern": "^(?:claim|source|evidence|entity|relation|concept|translation|conflict|evaluation):[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "dateOrDateTime": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "string",
+          "format": "date-time"
+        }
+      ]
+    }
+  }
+}

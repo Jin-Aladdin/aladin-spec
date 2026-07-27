@@ -1,0 +1,437 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jin-Aladdin/aladdin-spec/blob/main/schemas/artifact.schema.json",
+  "title": "Aladdin Knowledge Pack Artifact Provenance",
+  "description": "Normative schema for the provenance document that accompanies a published Aladdin Knowledge Pack artifact. It records what was built, from which source, by which tooling, with which checksums and against which validation and evaluation results, so a consumer can verify an artifact independently instead of trusting the publisher. This document describes an artifact; it does not certify that the knowledge inside it is correct.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "provenance_version",
+    "pack_id",
+    "version",
+    "artifact",
+    "files",
+    "build"
+  ],
+  "properties": {
+    "provenance_version": {
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "pack_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "minLength": 3,
+      "maxLength": 100
+    },
+    "version": {
+      "$ref": "#/$defs/semanticVersion"
+    },
+    "specification": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "The specification identity copied from the manifest, so an artifact states which specification series it targets."
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "sha256",
+        "size_bytes",
+        "file_count"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "media_type": {
+          "type": "string",
+          "pattern": "^[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+$",
+          "maxLength": 120
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "file_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100000,
+      "uniqueItems": true,
+      "description": "Every payload file with its own checksum. A consumer can verify individual files without unpacking the whole archive.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256",
+          "size_bytes"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+            "description": "Pack-relative path. Must not be absolute and must not traverse outside the artifact."
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "builder",
+        "reproducible"
+      ],
+      "properties": {
+        "builder": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 200,
+          "description": "Name and version of the tool that produced the artifact."
+        },
+        "reproducible": {
+          "type": "boolean",
+          "description": "True when rebuilding from the same source tree yields a byte-identical archive."
+        },
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "Commit the artifact was built from. Required for a reproducible build, which is otherwise not verifiable."
+        },
+        "source_repository": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        "validator_version": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "adapter_versions": {
+          "type": "object",
+          "description": "Version per source adapter that contributed content to this build.",
+          "propertyNames": {
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 100
+          }
+        },
+        "built_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "build_log": {
+          "type": "string",
+          "maxLength": 512,
+          "description": "Relative path or URL of the build log."
+        },
+        "environment": {
+          "type": "string",
+          "maxLength": 200
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "maxItems": 1000,
+      "uniqueItems": true,
+      "description": "The upstream material this build consumed, with the exact content hash retrieved.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source_id",
+          "content_hash",
+          "retrieved_at"
+        ],
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "pattern": "^source:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+            "maxLength": 240
+          },
+          "content_hash": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "retrieved_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "adapter": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "maxLength": 80
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome"
+      ],
+      "description": "The validation result at build time. An artifact must not be published on a failed validation.",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "pass",
+            "fail"
+          ]
+        },
+        "validated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "findings": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Summary of the evaluation suite. Individual measurements belong in evaluation records.",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "pass",
+            "fail",
+            "warn",
+            "skipped"
+          ]
+        },
+        "evaluation_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^evaluation:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+            "maxLength": 240
+          },
+          "uniqueItems": true,
+          "maxItems": 500
+        },
+        "report": {
+          "type": "string",
+          "maxLength": 512
+        }
+      }
+    },
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How the artifact is cryptographically attested, if it is.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "github-build-provenance",
+            "sigstore",
+            "detached-signature",
+            "none"
+          ]
+        },
+        "reference": {
+          "type": "string",
+          "maxLength": 2048
+        }
+      }
+    },
+    "sbom": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": [
+            "spdx",
+            "cyclonedx"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "licenses": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Licensing copied from the manifest, so an artifact carries its terms without needing the repository."
+    },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Lifecycle state copied from the manifest, including a recall marker when the artifact has been recalled."
+    },
+    "recall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recalled_at",
+        "reason"
+      ],
+      "description": "Present only on a recalled artifact. A recall does not delete history: the artifact stays available and is marked instead.",
+      "properties": {
+        "recalled_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 2000
+        },
+        "replacement_version": {
+          "$ref": "#/$defs/semanticVersion"
+        },
+        "affected_record_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "uniqueItems": true,
+          "maxItems": 1000
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Namespaced extension data using reverse-DNS keys.",
+      "propertyNames": {
+        "pattern": "^[a-z0-9]+(?:\\.[a-z0-9-]+)+$"
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "description": "A reproducible build must name the commit it was built from.",
+      "if": {
+        "properties": {
+          "build": {
+            "properties": {
+              "reproducible": {
+                "const": true
+              }
+            },
+            "required": [
+              "reproducible"
+            ]
+          }
+        },
+        "required": [
+          "build"
+        ]
+      },
+      "then": {
+        "properties": {
+          "build": {
+            "required": [
+              "source_commit"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "description": "An artifact must not record a failed validation as publishable.",
+      "if": {
+        "properties": {
+          "validation": {
+            "properties": {
+              "outcome": {
+                "const": "fail"
+              }
+            },
+            "required": [
+              "outcome"
+            ]
+          }
+        },
+        "required": [
+          "validation"
+        ]
+      },
+      "then": {
+        "required": [
+          "recall"
+        ]
+      }
+    },
+    {
+      "description": "An attested artifact must reference its attestation.",
+      "if": {
+        "properties": {
+          "attestation": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "github-build-provenance",
+                  "sigstore",
+                  "detached-signature"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        },
+        "required": [
+          "attestation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "attestation": {
+            "required": [
+              "reference"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "semanticVersion": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    }
+  }
+}

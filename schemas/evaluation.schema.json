@@ -1,0 +1,485 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jin-Aladdin/aladdin-spec/blob/main/schemas/evaluation.schema.json",
+  "title": "Aladdin Knowledge Evaluation",
+  "description": "Normative schema for an evaluation record in an Aladdin Knowledge Pack. An evaluation stores the outcome of a validation, quality or retrieval test against a stated threshold, so a consumer can see what was measured, how, against which target and with which result. An evaluation records a measurement. It does not establish that the evaluated knowledge is true.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "kind",
+    "subject",
+    "metric",
+    "result",
+    "executed_at",
+    "executor",
+    "status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^evaluation:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "minLength": 14,
+      "maxLength": 240,
+      "description": "Stable namespaced identifier beginning with evaluation:."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "schema-validation",
+        "reference-integrity",
+        "provenance-coverage",
+        "freshness",
+        "retrieval-quality",
+        "answer-groundedness",
+        "contradiction-detection",
+        "license-compliance",
+        "security-scan",
+        "reproducibility",
+        "other"
+      ]
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "description": "What was evaluated. A pack-wide evaluation names the pack and version; a record-level evaluation names the identifiers.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "pack",
+            "collection",
+            "records",
+            "artifact"
+          ]
+        },
+        "pack_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "maxLength": 100
+        },
+        "pack_version": {
+          "$ref": "#/$defs/semanticVersion"
+        },
+        "collection": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "maxLength": 80
+        },
+        "record_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/anyRecordId"
+          },
+          "uniqueItems": true,
+          "minItems": 1,
+          "maxItems": 1000
+        },
+        "artifact_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "unit"
+      ],
+      "description": "What was measured and in which unit. A number without a documented unit and direction is not interpretable.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "ratio",
+            "percent",
+            "count",
+            "seconds",
+            "bytes",
+            "boolean",
+            "score"
+          ]
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "higher-is-better",
+            "lower-is-better",
+            "exact-match"
+          ]
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 2000,
+          "description": "How the metric is computed. Required for any metric that is not self-evident."
+        }
+      }
+    },
+    "threshold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operator",
+        "value"
+      ],
+      "description": "The target the result is judged against. Without a stated threshold, pass and fail have no meaning.",
+      "properties": {
+        "operator": {
+          "type": "string",
+          "enum": [
+            ">=",
+            ">",
+            "<=",
+            "<",
+            "==",
+            "!="
+          ]
+        },
+        "value": {
+          "type": [
+            "number",
+            "boolean"
+          ]
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "outcome"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "boolean"
+          ]
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "pass",
+            "fail",
+            "warn",
+            "inconclusive",
+            "skipped"
+          ]
+        },
+        "sample_size": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of items measured. Required for any sampled metric, because a ratio without a sample size cannot be judged."
+        },
+        "details": {
+          "type": "string",
+          "maxLength": 4000
+        }
+      }
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The fixed input the evaluation ran against, so the measurement can be repeated.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "content_hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "executed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "executor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "description": "The tool that produced the measurement. A result that cannot be attributed to a versioned tool cannot be reproduced.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 200
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "environment": {
+          "type": "string",
+          "maxLength": 200
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "version"
+      ],
+      "description": "Required when a language model participated in the measurement. A model-judged evaluation is a measurement by an untrusted judge and must remain identifiable as such.",
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "transformation_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      }
+    },
+    "model_judged": {
+      "type": "boolean",
+      "description": "True when a language model produced or scored the result.",
+      "default": false
+    },
+    "reproducible": {
+      "type": "boolean",
+      "description": "True when repeating the evaluation with the same inputs and executor version yields the same result."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "superseded",
+        "withdrawn"
+      ]
+    },
+    "superseded_by": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evaluationId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 100
+    },
+    "withdrawal_reason": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 2000
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 3000
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Namespaced extension data using reverse-DNS keys.",
+      "propertyNames": {
+        "pattern": "^[a-z0-9]+(?:\\.[a-z0-9-]+)+$"
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "description": "A pass or fail outcome requires the threshold it was judged against.",
+      "if": {
+        "properties": {
+          "result": {
+            "properties": {
+              "outcome": {
+                "enum": [
+                  "pass",
+                  "fail"
+                ]
+              }
+            },
+            "required": [
+              "outcome"
+            ]
+          }
+        },
+        "required": [
+          "result"
+        ]
+      },
+      "then": {
+        "required": [
+          "threshold"
+        ]
+      }
+    },
+    {
+      "description": "A model-judged evaluation must name the model.",
+      "if": {
+        "properties": {
+          "model_judged": {
+            "const": true
+          }
+        },
+        "required": [
+          "model_judged"
+        ]
+      },
+      "then": {
+        "required": [
+          "model"
+        ]
+      }
+    },
+    {
+      "description": "A ratio, percent or score must state its direction and its sample size.",
+      "if": {
+        "properties": {
+          "metric": {
+            "properties": {
+              "unit": {
+                "enum": [
+                  "ratio",
+                  "percent",
+                  "score"
+                ]
+              }
+            },
+            "required": [
+              "unit"
+            ]
+          }
+        },
+        "required": [
+          "metric"
+        ]
+      },
+      "then": {
+        "properties": {
+          "metric": {
+            "required": [
+              "direction"
+            ]
+          },
+          "result": {
+            "required": [
+              "sample_size"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "description": "A pack-level evaluation must identify the pack and version it measured.",
+      "if": {
+        "properties": {
+          "subject": {
+            "properties": {
+              "type": {
+                "const": "pack"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        },
+        "required": [
+          "subject"
+        ]
+      },
+      "then": {
+        "properties": {
+          "subject": {
+            "required": [
+              "pack_id",
+              "pack_version"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "description": "A superseded evaluation must name its replacement.",
+      "if": {
+        "properties": {
+          "status": {
+            "const": "superseded"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "superseded_by"
+        ]
+      }
+    },
+    {
+      "description": "A withdrawn evaluation must say why.",
+      "if": {
+        "properties": {
+          "status": {
+            "const": "withdrawn"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "withdrawal_reason"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "evaluationId": {
+      "type": "string",
+      "pattern": "^evaluation:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "anyRecordId": {
+      "type": "string",
+      "pattern": "^(?:claim|source|evidence|entity|relation|concept|translation|conflict|policy):[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "semanticVersion": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    }
+  }
+}
