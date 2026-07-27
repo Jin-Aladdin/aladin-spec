@@ -48,6 +48,19 @@ EXCLUDED_DIRECTORIES = {
     ".git",
 }
 
+#: Repository scaffolding that configures the repository rather than
+#: describing the pack. Licence and notice files are deliberately absent:
+#: those state the terms the content is published under and belong in the
+#: artifact.
+EXCLUDED_FILES = {
+    ".gitignore",
+    ".gitattributes",
+    ".gitmodules",
+    ".editorconfig",
+    ".mailmap",
+    "CODEOWNERS",
+}
+
 
 @dataclass(frozen=True)
 class BuildResult:
@@ -71,6 +84,8 @@ def collect_files(pack_dir: Path) -> list[Path]:
             continue
         relative = path.relative_to(pack_dir)
         if any(part in EXCLUDED_DIRECTORIES for part in relative.parts):
+            continue
+        if relative.name in EXCLUDED_FILES:
             continue
         files.append(relative)
     return sorted(files, key=lambda p: p.as_posix())
