@@ -327,7 +327,7 @@ The specification does not require publication of proprietary components such as
 * personalization systems
 * enterprise integrations
 
-== Planned Repository Structure
+== Repository Structure
 
 [source,text]
 ----
@@ -336,38 +336,129 @@ aladdin-spec/
 ├── LICENSE
 ├── CHANGELOG.adoc
 ├── CONTRIBUTING.adoc
-├── SECURITY.adoc
 ├── GOVERNANCE.adoc
-├── ROADMAP.adoc
-├── schemas/
-├── specifications/
-├── examples/
-├── decisions/
-├── scripts/
-└── tests/
+├── MAINTAINERS.adoc
+├── SECURITY.adoc
+├── SUCCESSION.adoc
+├── requirements-dev.txt
+├── .github/workflows/     validate, release, automation health, manual recovery
+├── automation/            health report for this repository
+├── decisions/             ADR-0001 to ADR-0005
+├── schemas/               manifest, canonical objects, update policy, artifact
+├── specifications/        automation-v1
+├── examples/              minimal pack, automated pack
+├── templates/             Knowledge Pack repository template
+├── scripts/               validator, gates, update engine, artifact builder
+└── tests/                 positive and negative coverage
 ----
+
+== Autonomous Maintenance
+
+Knowledge decays. A pack that was accurate at build time becomes wrong when its
+sources move, and a repository whose maintainer stops working on it becomes a
+stale artifact that still claims authority.
+
+ADR-0005 makes long-term maintenance part of the specification:
+
+[quote]
+____
+Aladdin Knowledge Packs must be capable of maintaining, validating, versioning
+and publishing their knowledge through auditable automation without depending
+on the continuous presence of their original creator.
+____
+
+Autonomy never means unreviewed publication. The pipeline is fail-closed: when
+a gate cannot prove that a candidate update is valid, the last provably valid
+version stays active.
+
+[cols="1,3",options="header"]
+|===
+| Mechanism
+| Behaviour
+
+| Declared sources
+| A source is retrieved only through a declared adapter, within a declared
+  allowlist, under declared size, time and redirect limits.
+
+| Candidate, not update
+| A successful retrieval produces a candidate. Five gates decide whether it may
+  advance: schema, references, security, licensing, evaluation.
+
+| Risk ceiling
+| The risk class of a source caps automated authority regardless of the
+  repository policy. High risk never publishes automatically.
+
+| Quarantine
+| A failing candidate is isolated with its reason. The working pack is never
+  modified in place.
+
+| Deterministic versioning
+| The increment is computed from the record diff, never from a free-form
+  judgement.
+
+| Audit trail
+| Every automated decision appends an immutable record.
+
+| Heartbeat
+| Scheduled workflows are disabled after inactivity, so the automation observes
+  and reports its own health.
+|===
+
+Language models may assist. Their output is an untrusted candidate: a model may
+not assign a truth status, raise confidence, invent a source or evidence, grant
+a license clearance or publish an unreviewed claim.
+
+Details: `specifications/automation-v1.adoc`, `schemas/update-policy.schema.json`
+and the working example in `examples/automated-pack`.
 
 == Validation
 
-The repository contains a reference validator. It requires only Python and the
-development dependencies listed in `requirements-dev.txt`.
+The repository validates itself. It requires only Python and the development
+dependencies in `requirements-dev.txt`.
 
 [source,text]
 ----
 python -m pip install -r requirements-dev.txt
 python scripts/validate.py
+python scripts/check_docs.py
+python scripts/security_scan.py
 python -m pytest tests -q
 ----
 
-The validator checks that every schema is valid JSON Schema draft 2020-12, that
-each example manifest validates against `schemas/manifest.schema.json`, that
-every record validates against its collection schema, that identifiers are
-unique, that declared entry points exist inside the pack and that every cross
-reference between records resolves.
+[cols="1,3",options="header"]
+|===
+| Gate
+| Checks
 
-In line with ADR-0003 the validator never executes Knowledge Pack content. YAML
-is parsed in safe mode, nothing from a pack is imported or evaluated and no
-remote URL is fetched during normal validation.
+| `validate.py`
+| Every schema is valid JSON Schema draft 2020-12 with a unique `$id`. Every
+  manifest, record and update policy validates. Identifiers are unique per
+  collection, declared entry points exist inside the pack, and every cross
+  reference resolves.
+
+| `check_docs.py`
+| AsciiDoc listing and quote blocks are properly delimited and documentation is
+  AsciiDoc.
+
+| `security_scan.py`
+| Pack directories carry no executable content, no undeclared binaries, no
+  symbolic links, no oversized files and no committed credentials.
+
+| `pytest`
+| Positive and negative coverage for validation, the update engine, the
+  artifact builder and the repository template.
+|===
+
+In line with ADR-0003 no tool in this repository ever executes Knowledge Pack
+content. YAML is parsed in safe mode, nothing from a pack is imported or
+evaluated, and no remote URL is fetched during normal validation.
+
+To try the update engine against the offline example:
+
+[source,text]
+----
+python scripts/update_engine.py --pack examples/automated-pack
+----
 
 == Development Roadmap
 
@@ -417,15 +508,29 @@ The validator, gateway and repository factory must follow the specification. The
 
 == Contributing
 
-Contribution guidelines are being prepared. Until the first contribution policy is published, architectural proposals may be submitted through GitHub Issues.
+See link:CONTRIBUTING.adoc[CONTRIBUTING.adoc] for the gates, the documentation
+format and what will be rejected. See link:GOVERNANCE.adoc[GOVERNANCE.adoc] for
+how decisions are made.
 
-Major architectural decisions are documented as Architecture Decision Records in the `decisions/` directory.
+Major architectural decisions are documented as Architecture Decision Records in
+the `decisions/` directory. A change that contradicts an accepted ADR requires a
+new ADR.
 
 == Security
 
-Security issues should not be published as normal public issues.
+Security issues must not be published as public issues. See
+link:SECURITY.adoc[SECURITY.adoc] for the reporting route, the threat model and
+the security controls.
 
-Until a dedicated private reporting process is available, do not include credentials, personal data, private keys or production secrets in issues, pull requests or examples.
+Never include credentials, personal data, private keys or production secrets in
+issues, pull requests, records, fixtures or examples.
+
+== Continuity
+
+link:SUCCESSION.adoc[SUCCESSION.adoc] documents repository ownership, machine
+identities, the handover procedure, what to do about an abandoned account or
+disabled automation, and the currently known single points of failure. Those
+gaps are listed as gaps rather than described as solved.
 
 == License
 
@@ -452,20 +557,42 @@ Third-party datasets, documents and knowledge sources used by future Knowledge P
 | Manifest schema
 | Draft `0.1.0`
 
-| Source, claim and evidence schemas
-| Draft `0.1.0`
+| Canonical object schemas
+| Draft `0.1.0`. Source, claim, evidence, entity, relation, concept, conflict,
+  translation, evaluation, policy and artifact provenance.
 
-| Entity schema
-| Draft `0.1.0`
+| Automation architecture
+| Accepted, ADR-0005
 
-| Relation, concept, conflict, translation, evaluation, policy and artifact schemas
-| Not started
+| Automation specification
+| Draft, `specifications/automation-v1.adoc`
+
+| Update policy schema
+| Draft `0.1.0`
 
 | Reference validator
 | Initial implementation
 
-| Minimal example pack
+| Documentation and security gates
+| Initial implementation
+
+| Deterministic update engine
+| Initial implementation, local fixtures only
+
+| Artifact builder
+| Initial implementation, reproducible output
+
+| Example packs
+| Minimal pack and automated pack
+
+| Knowledge Pack repository template
 | Available
+
+| Registry protocol
+| Not started
+
+| Sentinel repository
+| Not started
 
 | Stable specification
 | Not released

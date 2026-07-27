@@ -1,0 +1,76 @@
+= Changelog
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+
+All notable changes to the Aladdin specification are recorded here.
+
+The specification follows Semantic Versioning. While the series is `0.x`,
+breaking changes are possible between minor versions and every one of them is
+announced in this file.
+
+== Unreleased
+
+=== Breaking
+
+* The project is now spelled *Aladdin*. The rename covers prose, schema `$id`
+  values, the `specification.name` constant, every identifier namespace and the
+  manifest filename, which changed from `aladin-pack.yml` to
+  `aladdin-pack.yml`. The GitHub repository moved to
+  `Jin-Aladdin/aladdin-spec`. The change was made deliberately while no
+  artifact had been published and no external implementation existed.
+
+=== Added
+
+* `decisions/ADR-0005-autonomous-knowledge-maintenance.adoc`: fifteen binding
+  rules for autonomous maintenance and succession, five automation levels,
+  three risk classes and a fail-closed pipeline.
+* `specifications/automation-v1.adoc`: the first automation specification,
+  covering repository layout, the source adapter contract, gates, automation
+  state, the audit trail, versioning, workflow contracts and conformance.
+* `schemas/entity.schema.json`, `relation.schema.json`, `concept.schema.json`,
+  `conflict.schema.json`, `translation.schema.json`, `evaluation.schema.json`,
+  `policy.schema.json` and `artifact.schema.json`, completing the canonical
+  object series of ADR-0002.
+* `schemas/update-policy.schema.json`: the machine-checkable automation policy.
+* `scripts/validate.py`: reference validator for schemas, manifests, records,
+  cross references and update policies.
+* `scripts/check_docs.py` and `scripts/security_scan.py`: documentation and
+  security gates.
+* `scripts/source_adapters.py` and `scripts/update_engine.py`: the
+  deterministic update engine with a fixed adapter registry.
+* `scripts/build_artifact.py`: reproducible artifact builder with provenance.
+* `scripts/automation_health.py`: heartbeat and staleness reporting.
+* `examples/automated-pack`: a working example of the automation layer.
+* `templates/knowledge-pack-repository`: the controlled starting point for a
+  new Knowledge Pack repository, with inert defaults.
+* `CONTRIBUTING.adoc`, `GOVERNANCE.adoc`, `MAINTAINERS.adoc`, `SECURITY.adoc`
+  and `SUCCESSION.adoc`.
+* Workflows for validation, release, automation health and manual recovery.
+
+=== Changed
+
+* The minimal example pack now demonstrates the full graph: source, evidence,
+  claim, two entities, a concept and a typed relation.
+* Path safety and path presence are separate checks in the validator. A source
+  file that vanished is a retrieval failure the engine records and retries, not
+  an invalid policy.
+* The artifact builder no longer claims reproducibility without a source
+  commit, because that claim is not verifiable without one.
+
+=== Fixed
+
+* `examples/minimal-pack/aladdin-pack.yml` had lost its YAML indentation and
+  could not be parsed, which made the manifest impossible to validate.
+* ADR-0003 and ADR-0004 had lost their AsciiDoc listing and quote delimiters,
+  so literal blocks rendered as prose and an embedded YAML example lost its
+  indentation.
+* The example claim referenced a concept that did not exist in the pack.
+* The project status table claimed that the manifest schema, the validator and
+  the example pack had not been started.
+
+== 0.1.0-draft
+
+Initial draft: `README.adoc`, ADR-0001 to ADR-0004, the manifest, source, claim
+and evidence schemas, and the minimal example pack.
