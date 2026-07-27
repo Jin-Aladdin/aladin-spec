@@ -56,16 +56,25 @@ jobs:
           python -m pip install -r .aladdin-spec/requirements-dev.txt
 
       - name: Run the update engine
+        id: engine
         run: |
+          set -o pipefail
           python .aladdin-spec/scripts/update_engine.py \
             --root pack \
             --pack pack \
             --schemas .aladdin-spec/schemas \
             --trigger "${{ github.event_name }}" \
             --run-id "${{ github.run_id }}" \
-            --apply | tee -a "$GITHUB_STEP_SUMMARY"
+            --apply | tee result.txt | tee -a "$GITHUB_STEP_SUMMARY"
+          outcome=$(grep -m1 '^outcome:' result.txt | awk '{print $2}' || echo unknown)
+          echo "outcome=${outcome}" >> "$GITHUB_OUTPUT"
 
+      # Only a ready candidate becomes a pull request. An unchanged source, a
+      # quarantined candidate and a rate limit each end the run without one,
+      # and asking for a pull request there fails on a branch that was never
+      # created.
       - name: Open a pull request for a ready candidate
+        if: steps.engine.outputs.outcome == 'candidate-ready'
         uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7
         with:
           path: pack

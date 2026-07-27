@@ -126,3 +126,23 @@ def test_template_documents_recovery_and_maintainers():
         path = TEMPLATE / name
         assert path.is_file(), f"{name} is missing from the template"
         assert path.read_text(encoding="utf-8").strip(), f"{name} is empty"
+
+
+def test_pull_request_is_only_opened_for_a_ready_candidate():
+    """A no-change run must not try to open a pull request.
+
+    Found on the first real pack: the step ran unconditionally and failed on
+    a branch that was never created, turning a correct no-change run into a
+    red pipeline.
+    """
+    workflow = yaml.safe_load(
+        (WORKFLOWS / "update-knowledge.yml").read_text(encoding="utf-8")
+    )
+    steps = workflow["jobs"]["update"]["steps"]
+    pr_steps = [s for s in steps if "create-pull-request" in str(s.get("uses", ""))]
+    assert pr_steps, "the update workflow opens no pull request at all"
+    for step in pr_steps:
+        condition = step.get("if", "")
+        assert "candidate-ready" in condition, (
+            "the pull request step must be guarded by the engine outcome"
+        )
