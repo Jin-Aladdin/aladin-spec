@@ -98,6 +98,28 @@ SECRET_MARKERS: tuple[tuple[str, str], ...] = (
 DEFAULT_MAX_FILE_BYTES = 5_000_000
 DEFAULT_MAX_FILES = 5_000
 
+#: Directories that belong to the working copy or the build environment rather
+#: than to the pack. They are never part of a published artifact, and scanning
+#: them reports the tooling instead of the content: a git checkout alone
+#: contributes hooks, packed objects and config files that are not knowledge
+#: and were never claimed to be.
+IGNORED_DIRECTORIES = frozenset(
+    {
+        ".git",
+        ".github",
+        ".candidate",
+        ".venv",
+        "venv",
+        "__pycache__",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".ruff_cache",
+        "node_modules",
+        "dist",
+        "quarantine",
+    }
+)
+
 
 @dataclass(frozen=True)
 class Finding:
@@ -129,6 +151,13 @@ def scan_pack(
     file_count = 0
 
     for path in sorted(pack_dir.rglob("*")):
+        try:
+            relative_parts = path.relative_to(pack_dir).parts
+        except ValueError:
+            relative_parts = path.parts
+        if any(part in IGNORED_DIRECTORIES for part in relative_parts):
+            continue
+
         rel = _relative(path, root)
 
         if path.is_symlink():
