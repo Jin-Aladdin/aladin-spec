@@ -10,6 +10,18 @@ The specification follows Semantic Versioning. While the series is `0.x`,
 breaking changes are possible between minor versions and every one of them is
 announced in this file.
 
+== Unreleased
+
+=== Fixed
+
+* The security scanner walked the working copy, so a pack that is a git
+  checkout reported its own `.git` directory as undeclared content: hooks,
+  config and packed objects. Every generated repository would have failed its
+  security gate on the first push, for files it never authored. Found on the
+  first real pack repository, which is the only place it can appear. The
+  scanner now skips working-copy and build directories, and a test builds a
+  real checkout to keep it that way.
+
 == 0.2.0, 2026-07-27
 
 Adds the sentinel, verified backups and the Knowledge Pack bootstrap, and

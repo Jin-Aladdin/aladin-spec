@@ -111,6 +111,32 @@ def test_security_step_succeeds(workspace):
     assert result.returncode == 0, result.stdout + result.stderr
 
 
+def test_security_step_succeeds_on_a_real_checkout(tmp_path):
+    """A pack in CI is a git working copy, and .git is not pack content.
+
+    Found on the first real repository: the scanner walked .git and reported
+    hooks, config and packed objects as undeclared file types. Every generated
+    repository would have failed its security gate on the first push, for
+    content it never authored.
+    """
+    pack = tmp_path / "pack"
+    bootstrap.create_pack(
+        pack,
+        pack_id="aladdin-kb-checkout",
+        name="Checkout Test Pack",
+        description="Pack used to check the scanner against a real working copy.",
+        domain="checkout",
+    )
+    subprocess.run(["git", "init", "--quiet", "-b", "main"], cwd=str(pack), check=True)
+    subprocess.run(["git", "add", "-A"], cwd=str(pack), check=True, capture_output=True)
+    assert (pack / ".git").is_dir()
+
+    from security_scan import scan_pack
+
+    findings = scan_pack(pack, pack)
+    assert findings == [], [str(f) for f in findings]
+
+
 def test_update_engine_step_succeeds(workspace):
     result = run_step(
         workspace,
