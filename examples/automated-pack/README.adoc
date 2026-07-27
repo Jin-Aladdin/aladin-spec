@@ -27,19 +27,162 @@ automated-pack/
 │   └── sources.jsonl
 ├── evidence/
 │   └── evidence.jsonl
+├── entities/
+│   └── entities.jsonl
 └── upstream/
     └── release-notes.json
 ----
 
+== Two Sources
+
+The pack declares one source per adapter, so both retrieval paths are visible
+side by side.
+
+[cols="1,1,2",options="header"]
+|===
+| Source
+| Adapter
+| Purpose
+
+| `source:example.runtime.release-notes`
+| `static-file`
+| An in-repository fixture. Deterministic and offline, so the pipeline can be
+  exercised with no network at all.
+
+| `source:github.api.curl.releases.latest`
+| `json-api`
+| A real endpoint: the GitHub Releases API for `curl/curl`.
+|===
+
 == The upstream Directory
 
 `upstream/` is not pack content. It stands in for an external source so the
-example stays deterministic and offline: no network request, no live website, no
-moving target.
+static-file example stays deterministic and offline: no network request, no
+live website, no moving target.
 
 It is not declared as a content type and not listed as an entry point, so it is
-never part of a published artifact. A real pack would point its source policy at
-a remote URL instead.
+never part of a published artifact.
+
+== The Real Source
+
+The `json-api` source retrieves
+`https://api.github.com/repos/curl/curl/releases/latest`.
+
+=== Why This Endpoint
+
+[cols="1,3",options="header"]
+|===
+| Criterion
+| Reason
+
+| No credential
+| It answers unauthenticated, so no personal token becomes part of the
+  architecture (ADR-0005).
+
+| Small
+| About 14 KB, the smallest of the endpoints examined.
+
+| Stable
+| curl releases rarely, so the source is stable rather than noisy.
+
+| Low risk
+| Release metadata only. Nothing medical, legal, financial or political.
+
+| Documented terms
+| Use of the API is governed by published terms that can be recorded.
+|===
+
+=== What the Claim Says
+
+[source,text]
+----
+The GitHub Releases API reports release tag curl-8_21_0, published at
+2026-06-24T06:03:04Z, as the latest release of the curl/curl repository.
+----
+
+It reports what the source establishes and stops there. It does not claim that
+this tag is the newest curl version available everywhere, which the API does not
+establish and which would be a stronger assertion than the evidence supports.
+
+=== Why the Statement Has No Timestamp
+
+A statement containing the retrieval time would differ on every run and produce
+a commit on every run, which defeats change detection entirely.
+
+Retrieval time is provenance, not meaning. It lives in `last_verified_at` on the
+claim, `captured_at` on the evidence, and `retrieved_at` with the content hash on
+the source record, where it can move freely without changing what is asserted.
+
+=== Mapping
+
+The policy declares which fields are extracted and how they are constrained:
+
+[source,yaml]
+----
+mapping:
+  release_tag:
+    pointer: /tag_name
+    type: string
+    required: true
+  published_at:
+    pointer: /published_at
+    type: string
+    format: date-time
+    required: true
+  release_url:
+    pointer: /html_url
+    type: string
+    format: uri
+    required: true
+----
+
+There is no expression language. A mapping locates values and constrains them;
+it cannot compute, so a policy cannot smuggle computation into the pipeline.
+
+The evidence record points at `/tag_name` by JSON Pointer, so a reader can check
+the exact location the claim rests on.
+
+=== Licensing
+
+The response is GitHub API output, not a work under an SPDX-listed content
+license. The source therefore records `LicenseRef-github-api-terms` with a link
+to the published terms, and only factual release metadata is used.
+
+Recording an SPDX license the project does not have would be a false statement
+about someone else's rights, so the honest identifier is used instead.
+
+== Behaviour
+
+[cols="1,3",options="header"]
+|===
+| Situation
+| Result
+
+| Source unchanged
+| The conditional request returns 304. No candidate, no version, no commit, no
+  pull request. The run succeeds.
+
+| Content hash unchanged
+| Same result, even if the server ignores conditional requests.
+
+| Source changed, all gates pass
+| A candidate is produced at level `propose`. Nothing is merged or published.
+
+| Required field missing or of the wrong type
+| The candidate is quarantined. The working pack is untouched.
+
+| Response is HTML, oversized, or not JSON
+| The run fails. No record is modified.
+
+| Target resolves somewhere unsafe
+| The retrieval is refused before any connection is made.
+
+| Rate limited
+| The run is recorded as deferred. This is a scheduling signal, not a knowledge
+  change.
+|===
+
+In every failing case the last valid version stays active.
 
 == Update Policy
 
@@ -80,10 +223,11 @@ It is an audit input, not a place to edit values until a gate passes.
 
 == What This Example Does Not Do
 
-* It does not fetch anything over the network.
 * It does not publish a release.
 * It does not merge anything automatically.
-* It does not execute any code from the source it reads.
+* It does not execute any code from the sources it reads.
+* It does not send credentials, and it does not need any.
+* It does not crawl. One declared endpoint, one adapter, one document.
 
 The deterministic update engine that consumes this policy is documented in
 `specifications/automation-v1.adoc`.
@@ -94,6 +238,18 @@ The deterministic update engine that consumes this policy is documented in
 ----
 python scripts/validate.py --pack examples/automated-pack
 ----
+
+To run the pipeline against both sources, including the live endpoint:
+
+[source,text]
+----
+python scripts/update_engine.py --pack examples/automated-pack
+----
+
+Without `--apply` nothing is persisted. The unit test suite never contacts the
+real endpoint; it drives the adapter against a local mock server, so a slow or
+rate-limited API can never turn a required check red. The real endpoint is
+exercised by the separately dispatched `Integration, json-api` workflow.
 
 The validator checks the manifest, every record, every cross reference and the
 update policy, including the two rules a schema cannot express: the policy must

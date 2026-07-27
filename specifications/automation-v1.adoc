@@ -269,6 +269,29 @@ NOT be supplied, selected or parameterized by Knowledge Pack content.
 | A published standards document.
 |===
 
+=== Implementation Status
+
+[cols="1,1,2",options="header"]
+|===
+| Adapter
+| Status
+| Note
+
+| `static-file`
+| Implemented
+| Reads a fixture inside the repository. Offline and deterministic.
+
+| `json-api`
+| Implemented
+| Retrieves one JSON document over HTTPS. See the dedicated section below.
+
+| all others
+| Declared only
+| The adapter exists in the registry and refuses to run. Declared but
+  unimplemented adapters fail closed rather than degrading to something
+  weaker.
+|===
+
 === Adapter Contract
 
 Every adapter MUST:
@@ -319,6 +342,181 @@ Each retrieval MUST produce a record with at least these fields:
 
 The retrieval record is an input to the audit trail. It is not itself evidence
 that the retrieved content is correct.
+
+== The json-api Adapter
+
+The first adapter that reaches the network. Everything below is normative for
+it and applies to any future network adapter.
+
+=== Target Screening
+
+A domain allowlist is necessary and not sufficient: it constrains the name, not
+where the name points. Screening therefore happens in three stages, and a
+target must pass all three.
+
+[cols="1,3",options="header"]
+|===
+| Stage
+| Requirement
+
+| Name
+| Scheme MUST be `https`. The URL MUST NOT embed credentials in the authority
+  component. The port MUST be the default for the scheme. The host MUST match
+  the declared allowlist exactly or as a subdomain, so `example.org` permits
+  `api.example.org` and never `example.org.attacker.test`.
+
+| Address
+| Every address the name resolves to MUST be screened. If any one of them is
+  unsafe, the whole target MUST be refused: a host answering with one public
+  and one loopback address is not a host to trust.
+
+| Connection
+| The connection MUST go to the address that passed screening, while TLS uses
+  the hostname for SNI and certificate validation. Resolving the name a second
+  time at connect creates a time-of-check to time-of-use gap, which is exactly
+  how DNS rebinding reaches a loopback or metadata endpoint through an
+  allowlisted name.
+|===
+
+Addresses that MUST be refused, for IPv4 and IPv6: loopback, unspecified,
+private, link-local, multicast, reserved, site-local, carrier-grade NAT,
+IETF protocol assignments, benchmarking, 6to4, NAT64, and anything not
+globally routable. An IPv4 address embedded in an IPv6 form MUST be unwrapped
+and screened on its own, because `::ffff:127.0.0.1` is loopback.
+
+Cloud instance metadata endpoints MUST be refused by name as well as by range,
+so a rejection says what was actually blocked.
+
+These schemes MUST never be attempted: `file`, `ftp`, `ftps`, `data`,
+`gopher`, `jar`, `netdoc`, `mailto`, `ldap`, `dict`, `sftp`.
+
+TLS certificate and hostname verification MUST NOT be disabled, under any
+configuration flag, for any source.
+
+=== Redirects
+
+A redirect is a new request to a new target and inherits no trust from the
+first hop. Each hop MUST be screened again with the full procedure above. The
+hop count MUST be bounded by the declared limit, and a URL already visited in
+the same retrieval MUST be treated as a loop and refused.
+
+=== Content Type
+
+Only JSON is accepted: the exact types declared by the policy, plus any media
+type ending in `+json`, which covers vendor types such as
+`application/vnd.github+json`. Media type parameters are ignored.
+
+A response with no `Content-Type` MUST be refused. An HTML response MUST be
+refused even when its body happens to parse as JSON: the server declared what
+it sent, and guessing otherwise is how a login page becomes knowledge.
+
+=== Limits
+
+Connect and read timeouts are separate. A declared `Content-Length` above the
+limit MUST be refused before the body is read, and the transfer MUST be aborted
+as soon as the limit is exceeded during streaming, rather than buffering the
+whole response and checking afterwards.
+
+Retrieved bytes are parsed only to confirm they are JSON. Nothing from a
+response is executed, imported or evaluated.
+
+=== Conditional Requests
+
+When enabled and a validator was recorded, the request MUST carry
+`If-None-Match` and `If-Modified-Since`.
+
+A `304 Not Modified` response means:
+
+* no candidate
+* no new pack version
+* no update pull request
+* no commit
+* no change to subject-matter data
+
+The run MUST end successfully with a recorded no-change result. Automation
+state MAY be updated separately.
+
+An identical content hash MUST have the same effect, so a server that ignores
+conditional requests still produces no update.
+
+=== Retry Classification
+
+Retries are bounded and conservative.
+
+[cols="1,3",options="header"]
+|===
+| Retryable
+| Not retryable
+
+| Connection failure, connect or read timeout, HTTP 408, 425, 500, 502, 503,
+  504.
+| A refused target, a redirect off the allowlist, a redirect loop, excess
+  hops, a wrong or missing content type, an oversized response, invalid JSON,
+  a mapping failure, a schema failure, a licensing failure, any other 4xx.
+|===
+
+A refusal is a decision, not a hiccup: repeating the request produces the same
+answer and only adds load. A rate limit is never retried within the same run.
+
+=== Rate Limits
+
+A rate limit MUST be recognized from HTTP 429, and from HTTP 403 combined with
+an exhausted remaining-quota header, which is how GitHub reports it.
+
+A rate limit is a scheduling signal, not a knowledge change. On a rate limit
+the run MUST keep the last valid version active, MUST NOT merge a candidate,
+MUST NOT create a release, MUST NOT modify subject-matter data, and MUST record
+the run as deferred rather than as a content failure. `Retry-After` SHOULD be
+honoured for the next attempt.
+
+=== Recorded Metadata
+
+Each successful retrieval MUST record the requested URL, the final URL after
+redirects, the HTTP status, the content type, the retrieval time, the SHA-256
+of the response body, the response size, the adapter name and version, the
+number of redirects, and any `ETag` and `Last-Modified`.
+
+Request headers MUST NOT appear in a retrieval record, an artifact, a log or an
+audit file. The simplest guarantee that an authorization value never leaks is
+never to record headers at all.
+
+== Declarative Transformation
+
+A retrieved document becomes records through a declared mapping. The mapping is
+deliberately not an expression language: any policy field that could be
+evaluated would turn pack configuration into code, which ADR-0003 forbids.
+
+A mapping rule locates a value by RFC 6901 JSON Pointer and MAY constrain it by
+type, format, length, pattern, enumeration, array item type and array length. A
+required field that is absent is a mapping failure. An optional field MAY carry
+a constant default.
+
+Documents MUST be depth-limited, and the depth measurement MUST NOT itself
+recurse.
+
+Statement templates substitute mapped field names and nothing else. Attribute
+access, indexing and format specifications MUST NOT be supported: a template
+that can reach `__class__` is a way out of the sandbox.
+
+The following MUST NOT appear in a policy: Python expressions, template engine
+expressions, shell fragments, or a path to an executable transformation.
+
+=== Determinism
+
+The same response body and the same transformation configuration MUST produce
+the same normalized result.
+
+Volatile values MUST NOT enter the subject-matter identity of a claim, entity
+or artifact. In particular a statement MUST NOT contain the retrieval
+timestamp, the workflow run identifier, a temporary path or a generated
+identifier. A statement carrying the clock differs on every run and produces a
+commit on every run, which defeats the purpose of change detection.
+
+Retrieval time belongs to provenance fields, where it can move without changing
+meaning: `last_verified_at` on a claim, `captured_at` on evidence, and
+`retrieved_at` with the content hash on the source record.
+
+Record identifiers are declared in the policy, not generated per run.
 
 == Change Detection
 
@@ -746,10 +944,31 @@ A repository is conformant with this specification when:
 . no automation depends on a personal access token
 . the heartbeat runs and reports
 
+== Not Supported
+
+Stated explicitly, because an unstated limit reads as a capability.
+
+* No general web crawler and no scraping of arbitrary pages. A source is one
+  declared endpoint with one declared adapter.
+* No authenticated retrieval yet. The adapter sends no credentials, so a
+  source must answer unauthenticated.
+* No proxy support.
+* No pagination. One request, one document.
+* No partial or ranged retrieval.
+* No response caching beyond the recorded validators.
+* No content negotiation beyond a fixed `Accept` header.
+* No compression: identity encoding is requested, so a compression bomb has no
+  path in.
+* No mapping across multiple sources into one record.
+* No arithmetic, conditionals or loops in a mapping.
+* No automatic license determination. Licensing is declared by a maintainer and
+  never inferred, least of all by a language model.
+
 == Open Items
 
 The following are deliberately unresolved in this draft:
 
+* authenticated retrieval through an organization-owned GitHub App
 * the normative registry protocol for level 5 propagation
 * the attestation format beyond the GitHub-native build attestation
 * the evaluation suite format and its thresholds
