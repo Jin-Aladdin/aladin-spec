@@ -14,7 +14,8 @@ Jin-Aladdin
 
 [.text-center]
 image:https://img.shields.io/badge/STATUS-PRE--ALPHA-F59E0B?style=for-the-badge[Project status: Pre-Alpha]
-image:https://img.shields.io/badge/SPEC-0.1.0--DRAFT-7C3AED?style=for-the-badge[Specification version: 0.1.0 Draft]
+image:https://img.shields.io/badge/SPEC-0.2.x--DRAFT-7C3AED?style=for-the-badge[Specification series: 0.2.x Draft]
+image:https://img.shields.io/github/v/release/Jin-Aladdin/aladdin-spec?style=for-the-badge&label=RELEASE[Latest release,link=https://github.com/Jin-Aladdin/aladdin-spec/releases/latest]
 image:https://img.shields.io/github/license/Jin-Aladdin/aladdin-spec?style=for-the-badge[License,link=https://github.com/Jin-Aladdin/aladdin-spec/blob/main/LICENSE]
 image:https://img.shields.io/github/issues/Jin-Aladdin/aladdin-spec?style=for-the-badge[Open issues,link=https://github.com/Jin-Aladdin/aladdin-spec/issues]
 image:https://img.shields.io/github/stars/Jin-Aladdin/aladdin-spec?style=for-the-badge[GitHub stars,link=https://github.com/Jin-Aladdin/aladdin-spec/stargazers]
@@ -311,7 +312,41 @@ MAJOR.MINOR.PATCH
 | Backward-compatible corrections and clarifications.
 |===
 
-The current working version is `0.1.0-draft`. Specification version `1.0.0` has not yet been released.
+Specification version `1.0.0` has not been released. The current series is
+`0.2.x`, and within a `0.x` series a minor version may still break
+compatibility.
+
+=== Three Version Numbers
+
+They mean different things and are deliberately not kept in lockstep.
+
+[cols="1,1,2",options="header"]
+|===
+| Number
+| Current
+| What it identifies
+
+| Release tag
+| `v0.2.1`
+| What you download. Includes tooling fixes that change no schema.
+
+| Schema identifier version
+| `v0.2.0`
+| The version a schema `$id` points at. It moves only when a schema changes,
+  so a tooling patch leaves it alone (ADR-0006).
+
+| `specification.version` in a manifest
+| `0.1.0`
+| Which specification version a pack targets. A pack that uses only `0.1.0`
+  structures keeps declaring `0.1.0`, and stays valid, because `0.2.0` added
+  a schema rather than changing one.
+|===
+
+The separate `schema_version` field in a manifest is the version of the
+manifest schema itself, not of the specification.
+
+If you are pinning tooling, pin the release tag. If you are referencing a
+schema, use its `$id` as written in the schema.
 
 == Open-Core Boundary
 
@@ -570,11 +605,11 @@ Third-party datasets, documents and knowledge sources used by future Knowledge P
 | In design
 
 | Manifest schema
-| Draft `0.1.0`
+| Draft, identifiers at `v0.2.0`
 
 | Canonical object schemas
-| Draft `0.1.0`. Source, claim, evidence, entity, relation, concept, conflict,
-  translation, evaluation, policy and artifact provenance.
+| Draft, identifiers at `v0.2.0`. Source, claim, evidence, entity, relation,
+  concept, conflict, translation, evaluation, policy and artifact provenance.
 
 | Automation architecture
 | Accepted, ADR-0005
@@ -583,25 +618,26 @@ Third-party datasets, documents and knowledge sources used by future Knowledge P
 | Draft, `specifications/automation-v1.adoc`
 
 | Update policy schema
-| Draft `0.1.0`
+| Draft, identifiers at `v0.2.0`
 
 | Reference validator
-| Initial implementation
+| Implemented, runs on every push
 
 | Documentation and security gates
-| Initial implementation
+| Implemented, run on every push
 
 | Deterministic update engine
-| Initial implementation, local fixtures only
+| Implemented. Verified against a real endpoint, not only fixtures.
 
 | Artifact builder
-| Initial implementation, reproducible output
+| Implemented, byte-identical rebuilds
 
 | Example packs
 | Minimal pack and automated pack
 
 | Knowledge Pack repository template
-| Available
+| Available, with a bootstrap generator. Verified end to end: a generated
+  repository passes its own pipeline.
 
 | Source adapters
 | `static-file` and `json-api` implemented. The remaining seven are declared
@@ -615,13 +651,13 @@ Third-party datasets, documents and knowledge sources used by future Knowledge P
 | Not started
 
 | Sentinel repository
-| Available as a template, not yet deployed
+| Deployed at `Aladdin-Knowledge/aladdin-sentinel`
 
-| Published release
-| `v0.1.0` draft, 2026-07-27. Schema identifiers resolve against this tag.
+| Latest release
+| `v0.2.1`, 2026-07-27
 
 | Stable specification
-| Not released. `0.1.0` is a draft and nothing in it is frozen beyond the tag.
+| Not released. `0.2.x` is a draft series and no structure is frozen.
 |===
 
 == Final Principle
