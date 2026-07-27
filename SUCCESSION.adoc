@@ -54,8 +54,10 @@ Honest assessment as of the draft `0.1.0` specification series.
 | Nothing to rotate, nothing to lose. This part is already correct.
 
 | Published artifacts
-| None yet
-| Nothing to preserve or recall so far.
+| `v0.1.0`, published 2026-07-27
+| Six assets with checksums and a build attestation. From here on a defective
+  release must be recalled rather than deleted, and the `0.1.0` schemas are
+  frozen: further changes belong to the next version (ADR-0006).
 
 | Mirrors
 | None

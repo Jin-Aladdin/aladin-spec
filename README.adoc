@@ -588,14 +588,21 @@ Third-party datasets, documents and knowledge sources used by future Knowledge P
 | Knowledge Pack repository template
 | Available
 
+| Source adapters
+| `static-file` and `json-api` implemented. The remaining seven are declared
+  and fail closed.
+
 | Registry protocol
 | Not started
 
 | Sentinel repository
 | Not started
 
+| Published release
+| `v0.1.0` draft, 2026-07-27. Schema identifiers resolve against this tag.
+
 | Stable specification
-| Not released
+| Not released. `0.1.0` is a draft and nothing in it is frozen beyond the tag.
 |===
 
 == Final Principle

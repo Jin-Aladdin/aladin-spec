@@ -10,7 +10,16 @@ The specification follows Semantic Versioning. While the series is `0.x`,
 breaking changes are possible between minor versions and every one of them is
 announced in this file.
 
-== Unreleased
+== 0.1.0, 2026-07-27
+
+First tagged draft. Tagging makes every schema identifier resolve, since the
+`$id` values point at this tag by design (ADR-0006).
+
+Verified after publication: all thirteen schema identifiers return the document
+they name, every release checksum matches, and the build attestation verifies
+against the repository.
+
+The `0.1.0` schemas are now frozen. Further changes belong to the next version.
 
 === Breaking
 
