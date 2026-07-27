@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.2.0/schemas/evidence.schema.json",
+  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.3.0/schemas/evidence.schema.json",
   "title": "Aladdin Knowledge Evidence",
   "description": "Normative schema for precise evidence records that connect Aladdin claims to exact locations, fragments or records within a source.",
   "type": "object",
