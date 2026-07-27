@@ -14,6 +14,15 @@ announced in this file.
 
 === Breaking
 
+* Schema identifiers changed from `github.com/.../blob/main/...` to versioned
+  raw URLs of the form
+  `https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.1.0/schemas/<name>.schema.json`.
+  The previous identifiers pointed at an HTML page, so they could not be
+  dereferenced, and at a moving branch, so they named a different document over
+  time. Impact was assessed first: no published release, no tag, no fork, no
+  registry and no published pack, so nothing external could reference them. The
+  identifier does not resolve until `v0.1.0` is tagged, which is the honest
+  state of a draft. Rationale and alternatives: ADR-0006.
 * The project is now spelled *Aladdin*. The rename covers prose, schema `$id`
   values, the `specification.name` constant, every identifier namespace and the
   manifest filename, which changed from `aladin-pack.yml` to
@@ -23,6 +32,29 @@ announced in this file.
 
 === Added
 
+* `decisions/ADR-0006-schema-identifier-strategy.adoc`: the identifier
+  strategy, its impact assessment and the rejected alternatives, including why
+  no project domain is invented.
+* `scripts/net_guard.py`: three-stage target screening with address pinning
+  against DNS rebinding, covering IPv4 and IPv6.
+* The `json-api` source adapter: HTTPS-only retrieval with manual redirect
+  screening, media type verification, streaming size limits, separate connect
+  and read timeouts, conditional requests, retry classification and rate-limit
+  recognition.
+* `scripts/json_mapping.py`: declarative JSON Pointer mapping with type,
+  format and constraint checks, iterative depth limiting, and templates that
+  cannot reach attributes or format specifications.
+* Update policy support for `mapping`, `transformation`,
+  `conditional_requests`, per-source `retry`, separate connect and read
+  timeouts and a JSON depth limit, with a rule requiring a json-api source to
+  declare all of them over an https URL.
+* A real demonstration source in `examples/automated-pack`: the GitHub
+  Releases API for `curl/curl`, with source, evidence, claim and entity.
+* `.github/workflows/integration-json-api.yml`: the only workflow that reaches
+  the real network, dispatchable and weekly, requiring no secrets.
+* `tests/test_schema_identity.py`, `tests/test_net_guard.py`,
+  `tests/test_json_api_adapter.py`, `tests/test_json_mapping.py` and
+  `tests/test_json_api_pipeline.py`.
 * `decisions/ADR-0005-autonomous-knowledge-maintenance.adoc`: fifteen binding
   rules for autonomous maintenance and succession, five automation levels,
   three risk classes and a fail-closed pipeline.
@@ -51,6 +83,13 @@ announced in this file.
 
 === Changed
 
+* Every workflow, in this repository and in the template, now declares a
+  per-job runtime ceiling and pins every action to a commit SHA. Previously no
+  job bounded its runtime and every action was referenced by a mutable tag, so
+  an upstream tag move could silently change what runs with repository
+  permissions.
+* Adapter dispatch is by declared name rather than function identity, so the
+  registry stays the single source of truth.
 * The minimal example pack now demonstrates the full graph: source, evidence,
   claim, two entities, a concept and a typed relation.
 * Path safety and path presence are separate checks in the validator. A source
@@ -61,6 +100,19 @@ announced in this file.
 
 === Fixed
 
+* Change detection over a whole response body reported a change on every run
+  for the real demonstration source, because the endpoint returns reaction
+  counts that move while the release does not. At `propose` level that would
+  have opened a pull request on every scheduled run. A `mapped-values` method
+  was added, which hashes only the declared extracted values; the body hash is
+  still recorded as provenance. Found by running the pipeline against the live
+  endpoint three times and observing three candidates where there should have
+  been none.
+* A rate-limited run was reported as no-change, because the branch that ends a
+  run without a candidate only recognized outright failure.
+* The offline update tests began contacting the live API once the example pack
+  gained a network source. They now disable non-static sources explicitly, so
+  no unit test depends on an external endpoint.
 * `examples/minimal-pack/aladdin-pack.yml` had lost its YAML indentation and
   could not be parsed, which made the manifest impossible to validate.
 * ADR-0003 and ADR-0004 had lost their AsciiDoc listing and quote delimiters,

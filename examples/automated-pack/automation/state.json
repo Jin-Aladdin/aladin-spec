@@ -16,6 +16,16 @@
       "last_change_at": "2026-07-27T00:00:00Z",
       "content_hash": "sha256:1457abb533a235f153c903108d88ff860842a6a0ac148ecf8a91ebf7b9ddc67e",
       "consecutive_failures": 0
+    },
+    {
+      "source_id": "source:github.api.curl.releases.latest",
+      "last_checked_at": "2026-07-27T10:58:02Z",
+      "last_change_at": "2026-07-27T10:58:02Z",
+      "content_hash": "sha256:1de2867b595802977a250f1fdc2d319943a23e161da7b1083d701c46364d51a7",
+      "etag": "W/\"edcbf8d5b1ec37ca069368db5a996fe97f7c4d54849eef4f289edf12569f8bb5\"",
+      "last_modified": "Wed, 24 Jun 2026 06:03:04 GMT",
+      "consecutive_failures": 0,
+      "mapped_hash": "sha256:c04d78dd8519ac552d4c3098000a835d3d603567eec3c943908c5ea1086b822d"
     }
   ],
   "quarantine": [],

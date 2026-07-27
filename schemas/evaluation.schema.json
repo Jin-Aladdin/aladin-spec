@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Jin-Aladdin/aladdin-spec/blob/main/schemas/evaluation.schema.json",
+  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.1.0/schemas/evaluation.schema.json",
   "title": "Aladdin Knowledge Evaluation",
   "description": "Normative schema for an evaluation record in an Aladdin Knowledge Pack. An evaluation stores the outcome of a validation, quality or retrieval test against a stated threshold, so a consumer can see what was measured, how, against which target and with which result. An evaluation records a measurement. It does not establish that the evaluated knowledge is true.",
   "type": "object",

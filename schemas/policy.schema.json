@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Jin-Aladdin/aladdin-spec/blob/main/schemas/policy.schema.json",
+  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.1.0/schemas/policy.schema.json",
   "title": "Aladdin Knowledge Policy",
   "description": "Normative schema for a policy record in an Aladdin Knowledge Pack. A policy states the licensing, access, jurisdictional and usage constraints that apply to knowledge content, so a consumer can decide what it is allowed to do with the material. This is a content policy attached to records; it is distinct from schemas/update-policy.schema.json, which governs a repository's automation.",
   "type": "object",

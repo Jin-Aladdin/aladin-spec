@@ -64,8 +64,16 @@ merge.
 | Adapters are a fixed mapping in source. Pack content cannot select, add or
   parameterize one.
 
-| Network adapters fail closed
+| Unimplemented adapters fail closed
 | Declared but unimplemented adapters raise rather than degrade.
+
+| Server-side request forgery defence
+| A network target is screened in three stages: the name, every address it
+  resolves to, and the address the connection actually uses. See below.
+
+| No expression language in policy
+| A mapping locates and constrains values. It cannot compute, so a policy
+  cannot become code.
 
 | Declarative content enforcement
 | `scripts/security_scan.py` rejects executable file types, binary payloads,
@@ -97,6 +105,86 @@ merge.
 | Automated decisions are appended, never rewritten. Corrections are new
   records.
 |===
+
+== Network Retrieval
+
+The `json-api` adapter is the first component that opens a connection to a host
+the repository does not control. Every retrieval is therefore treated as a
+server-side request forgery candidate.
+
+=== Three-Stage Screening
+
+A domain allowlist constrains the name, not where the name points. All three
+stages must pass.
+
+Name:: HTTPS is required. Credentials embedded in the authority component are
+refused. Non-default ports are refused. The host must match the allowlist
+exactly or as a subdomain, so `example.org.attacker.test` never passes an
+`example.org` allowlist.
+
+Address:: Every address the name resolves to is classified. One unsafe answer
+refuses the whole target. Refused for IPv4 and IPv6: loopback, unspecified,
+private, link-local, multicast, reserved, site-local, carrier-grade NAT, IETF
+protocol assignments, benchmarking, 6to4, NAT64, and anything not globally
+routable. IPv4 addresses embedded in IPv6 notation are unwrapped and screened
+separately, because `::ffff:127.0.0.1` is loopback. Cloud instance metadata
+endpoints are refused by name as well as by range.
+
+Connection:: The socket connects to the address that passed screening, while
+TLS uses the hostname for SNI and certificate validation. Resolving the name
+again at connect time would leave a time-of-check to time-of-use gap, which is
+precisely how DNS rebinding reaches a loopback or metadata endpoint through an
+allowlisted name.
+
+=== Further Controls
+
+[cols="1,2",options="header"]
+|===
+| Control
+| Behaviour
+
+| Redirects
+| Every hop is screened again with the full procedure. A redirect inherits no
+  trust from the first hop. Loops and excess hops are refused.
+
+| Schemes
+| `file`, `ftp`, `ftps`, `data`, `gopher`, `jar`, `netdoc`, `mailto`, `ldap`,
+  `dict` and `sftp` are never attempted.
+
+| TLS
+| Certificate and hostname verification cannot be disabled by any
+  configuration path.
+
+| Content type
+| Only declared JSON types and any `+json` suffix. HTML is refused even when
+  its body parses as JSON.
+
+| Size
+| A declared oversized length is refused before reading, and the transfer is
+  aborted mid-stream when the limit is exceeded.
+
+| Compression
+| Identity encoding is requested, so a decompression bomb has no path in.
+
+| Credentials
+| No authorization header is sent, and no request header is ever written to a
+  retrieval record, artifact, log or audit file.
+
+| Parsing
+| The body is parsed to confirm it is JSON. Nothing from a response is
+  executed, imported or evaluated.
+
+| Depth
+| Document nesting is capped, and the depth measurement itself is iterative so
+  a hostile document cannot exhaust the stack that inspects it.
+|===
+
+=== The Test-Only Opt-Out
+
+Two parameters relax screening so the test suite can drive a mock server on the
+loopback interface. They are function parameters on the adapter. They are not
+policy fields, not manifest values and not reachable from any pack content, so
+no Knowledge Pack can turn them on.
 
 == Prompt Injection
 

@@ -36,11 +36,26 @@ def schemas() -> dict:
 
 @pytest.fixture
 def workspace(tmp_path: Path) -> Path:
-    """An isolated copy of the repository parts the engine touches."""
+    """An isolated copy of the repository parts the engine touches.
+
+    Network sources are disabled here. This module covers the offline
+    static-file path, and a unit test must never depend on an external API
+    being reachable. The json-api path is covered against a local mock server
+    in test_json_api_pipeline.py.
+    """
     root = tmp_path / "repo"
     (root / "examples").mkdir(parents=True)
     shutil.copytree(EXAMPLE_PACK, root / "examples" / "automated-pack")
     shutil.copytree(REPOSITORY_ROOT / "schemas", root / "schemas")
+
+    pack = root / "examples" / "automated-pack"
+    policy_path = pack / "automation" / "update-policy.yml"
+    policy = yaml.safe_load(policy_path.read_text(encoding="utf-8"))
+    for source in policy["sources"]:
+        if source.get("adapter") != "static-file":
+            source["enabled"] = False
+    policy_path.write_text(yaml.safe_dump(policy, sort_keys=False), encoding="utf-8", newline="\n")
+
     return root
 
 
@@ -189,13 +204,20 @@ def test_unknown_adapter_is_refused():
         )
 
 
-def test_network_adapters_fail_closed_until_implemented():
-    for name in ("json-api", "html-documentation", "git-repository", "github-release"):
+def test_unimplemented_adapters_fail_closed():
+    """Declared but unimplemented adapters refuse rather than degrade."""
+    for name in ("html-documentation", "git-repository", "github-release", "feed"):
         with pytest.raises(source_adapters.AdapterError, match="not implemented"):
             source_adapters.fetch(
                 {"id": "source:x", "adapter": name, "url": "https://example.org/"},
                 repository_root=REPOSITORY_ROOT,
             )
+
+
+def test_implemented_adapters_are_the_declared_ones():
+    """The registry never gains an adapter that is not declared."""
+    assert set(source_adapters.IMPLEMENTED_ADAPTERS) <= set(source_adapters.DECLARED_ADAPTERS)
+    assert set(source_adapters.ADAPTERS) == set(source_adapters.DECLARED_ADAPTERS)
 
 
 # ---------------------------------------------------------------------------
@@ -393,19 +415,36 @@ def test_version_bump_is_deterministic(current, increment, expected):
     assert update_engine.bump(current, increment) == expected
 
 
+def edit_first_claim(candidate: Path, **fields) -> None:
+    """Change the first claim in place, preserving every other record.
+
+    Rewriting only the edited line would drop the rest of the collection, and
+    a removal is a major increment, so the test would pass for the wrong
+    reason.
+    """
+    claims_path = candidate / "claims" / "claims.jsonl"
+    records = [
+        json.loads(line)
+        for line in claims_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    records[0].update(fields)
+    claims_path.write_text(
+        "".join(
+            json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n"
+            for record in records
+        ),
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
 def test_changed_statement_is_a_major_increment(workspace, schemas, tmp_path):
     pack = pack_of(workspace)
     candidate = tmp_path / "candidate"
     shutil.copytree(pack, candidate)
 
-    claims_path = candidate / "claims" / "claims.jsonl"
-    record = json.loads(claims_path.read_text(encoding="utf-8").splitlines()[0])
-    record["statement"] = "A different statement about the runtime."
-    claims_path.write_text(
-        json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    edit_first_claim(candidate, statement="A different statement about the runtime.")
 
     assert update_engine.compute_increment(pack, candidate) == "major"
 
@@ -434,14 +473,7 @@ def test_provenance_only_change_is_a_patch(workspace, schemas, tmp_path):
     candidate = tmp_path / "candidate"
     shutil.copytree(pack, candidate)
 
-    claims_path = candidate / "claims" / "claims.jsonl"
-    record = json.loads(claims_path.read_text(encoding="utf-8").splitlines()[0])
-    record["last_verified_at"] = "2026-08-01T00:00:00Z"
-    claims_path.write_text(
-        json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    edit_first_claim(candidate, last_verified_at="2026-08-01T00:00:00Z")
 
     assert update_engine.compute_increment(pack, candidate) == "patch"
 

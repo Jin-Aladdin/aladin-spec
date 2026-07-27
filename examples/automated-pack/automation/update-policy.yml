@@ -62,6 +62,94 @@ sources:
       timeout_seconds: 30
       max_redirects: 0
 
+  - id: source:github.api.curl.releases.latest
+    adapter: json-api
+    url: https://api.github.com/repos/curl/curl/releases/latest
+    allowed_domains:
+      - api.github.com
+    allowed_media_types:
+      - application/json
+      - application/vnd.github+json
+    risk_class: low
+    automation_level: propose
+    trust:
+      level: primary
+      notes: >-
+        Official GitHub REST API. Primary for the question it answers, which is
+        what this repository's release metadata says, and nothing beyond that.
+    license:
+      policy: documented
+      expression: LicenseRef-github-api-terms
+      url: https://docs.github.com/en/site-policy/github-terms-of-service
+      attribution_required: true
+      excerpts_allowed: true
+      redistribution_allowed: true
+      notes: >-
+        Only factual release metadata is used. Use of the API is governed by the
+        GitHub Terms of Service rather than an SPDX-listed content license.
+    change_detection:
+      method: mapped-values
+    conditional_requests:
+      enabled: true
+    freshness:
+      max_age_days: 90
+      recheck_after_days: 1
+    limits:
+      max_download_bytes: 1000000
+      timeout_seconds: 30
+      connect_timeout_seconds: 10
+      read_timeout_seconds: 30
+      max_redirects: 2
+      max_json_depth: 32
+    retry:
+      max_attempts: 3
+      backoff_seconds: 5
+      respect_retry_after: true
+    mapping:
+      release_tag:
+        pointer: /tag_name
+        type: string
+        required: true
+        min_length: 1
+        max_length: 200
+      release_name:
+        pointer: /name
+        type: string
+        required: false
+        max_length: 300
+      published_at:
+        pointer: /published_at
+        type: string
+        format: date-time
+        required: true
+      release_url:
+        pointer: /html_url
+        type: string
+        format: uri
+        required: true
+      draft:
+        pointer: /draft
+        type: boolean
+        required: false
+        default: false
+    transformation:
+      version: "0.1.0"
+      claim:
+        id: claim:github.curl.latest-release.001
+        kind: observation
+        confidence: 0.9
+        statement_template: >-
+          The GitHub Releases API reports release tag {release_tag}, published at
+          {published_at}, as the latest release of the curl/curl repository.
+        valid_from_field: published_at
+      evidence:
+        id: evidence:github.api.curl.releases.latest.tag.001
+        fields:
+          - release_tag
+          - published_at
+      entity:
+        id: entity:curl
+
 release:
   versioning: deterministic
   require_clean_evaluation: true
