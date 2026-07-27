@@ -1,0 +1,678 @@
+= ADR-0004: Open-Core Boundary
+Jin-Aladdin
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+:icons: font
+
+[cols="1,3",options="header"]
+|===
+| Field
+| Value
+
+| Status
+| Accepted
+
+| Decision date
+| 2026-07-27
+
+| Decision owners
+| Aladin Spec Maintainers
+
+| Specification phase
+| Pre-Alpha
+
+| Related components
+| Aladin Spec, Knowledge Packs, Validator, Registry, Gateway, SDKs, The Lamp
+|===
+
+== Context
+
+Aladin is intended to become both:
+
+* an open technical ecosystem
+* a commercially sustainable AI platform
+
+The project requires a clear boundary between public standards and proprietary intelligence.
+
+Without this boundary, contributors and users cannot reliably determine:
+
+* which components will remain open
+* which components may become commercial
+* whether self-hosting will remain possible
+* whether the public standard depends on one private service
+* whether community Knowledge Packs can be used independently
+* whether proprietary implementations may use the public specification
+
+A vague open-core model would create distrust and technical lock-in.
+
+== Problem
+
+Aladin needs to protect its commercial advantages without weakening the usefulness of the public ecosystem.
+
+The architecture must avoid two opposite failures.
+
+=== Everything Is Proprietary
+
+If the specification, validators, formats and compatibility rules are private:
+
+* community adoption becomes difficult
+* independent implementations cannot emerge
+* Knowledge Packs become locked to one vendor
+* contributors cannot inspect the rules
+* long-term trust decreases
+* the ecosystem becomes dependent on one hosted service
+
+=== Everything Is Public
+
+If every advanced intelligence component is published without commercial boundaries:
+
+* sustainable hosting becomes harder
+* proprietary research cannot be protected
+* enterprise integrations lose differentiation
+* advanced orchestration can be copied immediately
+* continued development may lack funding
+
+The project therefore requires an explicit open-core architecture.
+
+== Decision
+
+Aladin will use an open-core model.
+
+The public core defines the portable knowledge ecosystem.
+
+Advanced intelligence, hosted services, commercial orchestration and proprietary data may remain private.
+
+[source,text]
+
+                ALADIN ECOSYSTEM
+
+┌──────────────────────────────────────────────────────┐
+│                    PUBLIC CORE                       │
+│                                                      │
+│  Specification · Schemas · Knowledge Packs           │
+│  Validator · SDKs · Registry Protocol · MCP           │
+│  Reference Gateway · Compatibility Rules             │
+└──────────────────────────┬───────────────────────────┘
+│
+│ open interfaces
+▼
+┌──────────────────────────────────────────────────────┐
+│              PROPRIETARY INTELLIGENCE                │
+│                                                      │
+│  The Lamp · Private Routing · Advanced Re-Ranking    │
+│  Personalization · Hosted Control Plane              │
+│  Enterprise Integrations · Proprietary Datasets      │
+└──────────────────────────────────────────────────────┘
+
+The public core must remain independently usable.
+
+A user must not require access to The Lamp or another proprietary Aladin service to:
+
+* create a Knowledge Pack
+* validate a Knowledge Pack
+* inspect a Knowledge Pack
+* publish a compatible Knowledge Pack
+* build a compatible runtime
+* perform local retrieval
+* use the public schemas
+* implement the public specification
+
+== Public Components
+
+The following components are intended to remain public.
+
+=== Aladin Specification
+
+The specification defines:
+
+* Knowledge Pack structures
+* required metadata
+* compatibility rules
+* source provenance
+* trust states
+* package lifecycle
+* validation requirements
+* security boundaries
+* artifact formats
+* extension rules
+
+The specification must remain publicly readable and implementable.
+
+=== JSON Schemas and Validation Rules
+
+Required schemas and normative validation rules remain public.
+
+This allows independent developers to create compatible:
+
+* validators
+* editors
+* registries
+* gateways
+* SDKs
+* build tools
+* Knowledge Pack generators
+
+=== Knowledge Pack Format
+
+The core Knowledge Pack format remains open and portable.
+
+No proprietary field may be mandatory for basic compatibility.
+
+=== Canonical Knowledge Model
+
+The required structure and meaning of the Canonical Knowledge Model remain publicly documented.
+
+An implementation may use a private internal database schema, but it must be possible to understand the public canonical semantics.
+
+=== Reference Validator
+
+At least one reference validator should remain publicly available.
+
+The validator establishes a shared compatibility baseline.
+
+Commercial platforms may add stricter policy checks, but basic specification validation must not require a paid service.
+
+=== SDKs
+
+Core SDKs for major programming languages may remain public.
+
+Likely SDKs include:
+
+* Python
+* JavaScript
+* TypeScript
+* Rust
+* Go
+
+SDKs may provide:
+
+* manifest parsing
+* schema validation
+* canonical model objects
+* compatibility checks
+* package inspection
+* checksum verification
+
+=== MCP Integration
+
+The standard MCP interface for discovering and querying Knowledge Packs should remain public.
+
+Private implementations may provide advanced tools, policies or orchestration beyond the public interface.
+
+=== Registry Protocol
+
+The protocol and metadata format used to describe registries remain public.
+
+A registry implementation may be public, private, local, commercial or enterprise-specific.
+
+=== Reference Gateway
+
+A basic reference gateway should remain public and self-hostable.
+
+The reference gateway may provide:
+
+* package loading
+* metadata indexing
+* basic hybrid retrieval
+* standard filtering
+* canonical API responses
+* health checks
+* local operation
+
+The reference gateway does not need to contain every advanced capability of The Lamp.
+
+=== Official Public Knowledge Packs
+
+Selected foundational Knowledge Packs may be maintained publicly.
+
+Examples may include:
+
+* Linux
+* Git
+* Docker
+* Python
+* HTTP
+* PostgreSQL
+* MCP
+* AI engineering fundamentals
+
+Not every Aladin dataset must be public.
+
+== Proprietary Components
+
+The following components may remain proprietary.
+
+=== The Lamp
+
+The Lamp is the private intelligence and orchestration layer.
+
+It may contain:
+
+* advanced query planning
+* private routing logic
+* dynamic model selection
+* proprietary re-ranking
+* contradiction-resolution strategies
+* adaptive context construction
+* personalized memory routing
+* agent orchestration
+* cost and latency optimization
+* private evaluation models
+* commercial safety policies
+
+=== Hosted Control Plane
+
+A commercial Aladin service may provide:
+
+* hosted package management
+* private registries
+* usage analytics
+* organization management
+* billing
+* audit dashboards
+* deployment management
+* enterprise access control
+* managed updates
+* managed indexing
+
+=== Proprietary Datasets
+
+Aladin may maintain datasets that cannot be published because of:
+
+* licensing restrictions
+* commercial agreements
+* privacy requirements
+* internal research
+* customer ownership
+* security concerns
+* competitive differentiation
+
+Such datasets must not be presented as open-source content.
+
+=== Enterprise Integrations
+
+Private integrations may include:
+
+* internal company systems
+* private document stores
+* customer databases
+* identity providers
+* enterprise audit systems
+* commercial support tools
+* regulated-domain workflows
+
+=== Personalization
+
+Private personalization systems may include:
+
+* long-term user models
+* preference learning
+* private memory ranking
+* behavioral adaptation
+* organization-specific context policies
+
+Personal data must not be required by the public Knowledge Pack standard.
+
+== Interface Rule
+
+The boundary between public and private components must use documented interfaces.
+
+[source,text]
+
+Public Knowledge Pack
+│
+▼
+Public Validator
+│
+▼
+Public Gateway Interface
+│
+├── Public local runtime
+│
+└── Proprietary The Lamp runtime
+
+The proprietary layer may extend the public interface.
+
+It must not silently redefine required public semantics.
+
+== No Proprietary Lock-In
+
+A valid public Knowledge Pack must remain usable without:
+
+* an Aladin cloud account
+* a paid subscription
+* a private API key
+* The Lamp
+* a proprietary database
+* a proprietary embedding model
+* a proprietary registry
+
+Commercial features may improve operation, quality, convenience or intelligence.
+
+They must not invalidate the open portability promise.
+
+== Compatibility Rule
+
+A proprietary Aladin implementation may add fields under a clearly namespaced extension.
+
+Example:
+
+[source,yaml]
+
+extensions:
+ai.aladin.lamp:
+routing_profile: advanced
+context_policy: adaptive-v2
+
+Private extensions must not:
+
+* redefine required public fields
+* make a public pack invalid
+* hide required provenance
+* remove license information
+* override security restrictions
+* grant execution permission
+* break other compatible runtimes
+
+A runtime that does not understand a private extension should be able to ignore or preserve it safely.
+
+== Branding and Naming
+
+The public project and proprietary product layers must be named clearly.
+
+Proposed naming:
+
+[cols="1,3",options="header"]
+|===
+| Name
+| Meaning
+
+| Aladin Spec
+| Public technical specification.
+
+| Aladin Knowledge Pack
+| Portable knowledge artifact following the public specification.
+
+| Aladin Registry
+| Registry protocol or implementation for discovering Knowledge Packs.
+
+| Aladin Gateway
+| Runtime that loads and serves Knowledge Packs.
+
+| Aladin SDK
+| Public development libraries.
+
+| The Lamp
+| Proprietary intelligence and orchestration layer.
+
+| The Compass
+| Query-planning and knowledge-selection capability.
+
+| The Scrolls
+| Brand term for public or private Knowledge Packs.
+
+| The Cave
+| Brand term for a registry or knowledge collection.
+|===
+
+Brand names do not replace technical component names inside the specification.
+
+== Licensing Strategy
+
+Different components may use different licenses.
+
+A possible initial strategy is:
+
+[cols="1,2",options="header"]
+|===
+| Component
+| Proposed license
+
+| Specification
+| Apache License 2.0
+
+| JSON Schemas
+| Apache License 2.0
+
+| Core SDKs
+| Apache License 2.0
+
+| Reference Validator
+| Apache License 2.0
+
+| Reference Gateway
+| To be decided before implementation
+
+| Official Knowledge Pack code
+| To be decided per repository
+
+| Knowledge content
+| Determined by content ownership and source licenses
+
+| The Lamp
+| Proprietary
+
+| Hosted services
+| Commercial terms
+
+| Proprietary datasets
+| Private or separately licensed
+|===
+
+This ADR does not finalize every future repository license.
+
+Every repository must contain an explicit license before public release.
+
+== Open Source Terminology
+
+Publicly viewable source code is not automatically open source.
+
+A component may only be described as open source when its license grants the required rights to:
+
+* use
+* inspect
+* modify
+* redistribute
+
+Components that do not grant those rights must be described accurately as:
+
+* proprietary
+* source-available
+* private
+* commercially licensed
+
+Aladin must not use misleading licensing language.
+
+== Community Contributions
+
+Community contributors must know where their contributions will be used.
+
+Public repositories should define:
+
+* contribution license
+* copyright handling
+* contributor expectations
+* review process
+* governance process
+* whether contributor license agreements are required
+
+A contribution to the public specification does not grant the contributor ownership of proprietary Aladin services.
+
+Likewise, accepting a public contribution must not silently relicense the contributor's work outside the repository license.
+
+== Governance
+
+The public specification requires transparent governance.
+
+At minimum, governance should define:
+
+* maintainer roles
+* proposal process
+* decision process
+* specification change process
+* compatibility requirements
+* deprecation policy
+* conflict-resolution process
+* security decision authority
+
+The commercial owner may maintain final control during the early project phase.
+
+The governance model should become more explicit as external contribution increases.
+
+== Commercial Use
+
+The public specification may be implemented by commercial organizations.
+
+A company may:
+
+* create compatible Knowledge Packs
+* operate a private registry
+* build a commercial gateway
+* provide enterprise hosting
+* sell support
+* integrate the format into its products
+
+Use of Aladin trademarks, logos and official certification marks may be governed separately from the open-source license.
+
+== Certification
+
+Future certification may distinguish:
+
+* Aladin Compatible
+* Aladin Verified
+* Official Aladin
+* Powered by The Lamp
+
+Certification rules must not alter the underlying open-source rights.
+
+A third-party implementation may be technically compatible without being officially endorsed.
+
+== Trust and Transparency
+
+Public documentation should clearly indicate whether a component is:
+
+* open source
+* proprietary
+* experimental
+* hosted-only
+* community-maintained
+* officially maintained
+* commercially licensed
+
+A user should not need to inspect hidden terms to understand the boundary.
+
+== Relationship to ADR-0001
+
+ADR-0001 defines Knowledge Packs as versioned data artifacts.
+
+The open-core boundary ensures that these artifacts remain portable across public and proprietary implementations.
+
+== Relationship to ADR-0002
+
+ADR-0002 defines the Canonical Knowledge Model.
+
+The canonical semantics remain part of the public compatibility layer.
+
+The Lamp may use additional private representations internally, but public inputs and outputs must preserve required canonical meaning.
+
+== Relationship to ADR-0003
+
+ADR-0003 prohibits automatic runtime execution from core Knowledge Packs.
+
+A proprietary runtime must not bypass this rule merely because it operates outside the public reference implementation.
+
+The security boundary remains part of public compatibility.
+
+== Positive Consequences
+
+This decision provides:
+
+* a clear public promise
+* a sustainable commercial path
+* independent self-hosting
+* lower ecosystem lock-in
+* community confidence
+* proprietary product differentiation
+* transparent licensing
+* support for commercial implementations
+* stable interfaces between public and private layers
+
+== Negative Consequences
+
+This decision creates additional responsibilities:
+
+* boundaries must be documented continuously
+* licenses must be selected carefully
+* duplicate public and private implementations may exist
+* proprietary features may create community tension
+* interface compatibility must be maintained
+* commercial branding must not misrepresent the open project
+
+The project must actively prevent the public core from becoming intentionally unusable.
+
+== Alternatives Considered
+
+=== Fully Proprietary Platform
+
+Rejected because it conflicts with portability, independent implementation and community contribution.
+
+=== Fully Open Development of Every Component
+
+Rejected because the project requires a sustainable commercial and research advantage.
+
+=== Source-Available but Not Open Source
+
+Rejected for the core specification because the ecosystem requires genuine implementation and redistribution rights.
+
+=== Public Specification with Mandatory Proprietary Runtime
+
+Rejected because it would create formal openness without practical independence.
+
+== Enforcement Principles
+
+The following principles are binding:
+
+. The public specification remains independently implementable.
+. Public Knowledge Packs remain portable.
+. The public core must not require The Lamp.
+. Proprietary extensions must be namespaced.
+. Required provenance and security fields must remain public.
+. Licensing descriptions must be accurate.
+. Commercial services may add value without invalidating open compatibility.
+. Public interfaces must be documented.
+. Security rules apply to both public and proprietary runtimes.
+
+== Implementation Guidance
+
+Before the first stable release, the project should create:
+
+* a public component matrix
+* a repository licensing matrix
+* a trademark policy
+* contributor guidelines
+* governance documentation
+* extension namespace rules
+* compatibility certification rules
+* a clear description of The Lamp
+
+The README of every Aladin repository should state whether the component is:
+
+* public specification
+* open-source implementation
+* community Knowledge Pack
+* proprietary component
+* commercial hosted service
+
+== Final Decision
+
+[quote]
+
+---
+
+The knowledge standard must remain open and independently usable. The intelligence built on top of it may remain proprietary.
+
+---
+
+Aladin adopts an open-core architecture with a portable public knowledge ecosystem and an optional proprietary intelligence layer.
