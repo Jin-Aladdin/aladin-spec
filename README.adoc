@@ -343,8 +343,31 @@ aladin-spec/
 ├── specifications/
 ├── examples/
 ├── decisions/
+├── scripts/
 └── tests/
 ----
+
+== Validation
+
+The repository contains a reference validator. It requires only Python and the
+development dependencies listed in `requirements-dev.txt`.
+
+[source,text]
+----
+python -m pip install -r requirements-dev.txt
+python scripts/validate.py
+python -m pytest tests -q
+----
+
+The validator checks that every schema is valid JSON Schema draft 2020-12, that
+each example manifest validates against `schemas/manifest.schema.json`, that
+every record validates against its collection schema, that identifiers are
+unique, that declared entry points exist inside the pack and that every cross
+reference between records resolves.
+
+In line with ADR-0003 the validator never executes Knowledge Pack content. YAML
+is parsed in safe mode, nothing from a pack is imported or evaluated and no
+remote URL is fetched during normal validation.
 
 == Development Roadmap
 
@@ -427,13 +450,22 @@ Third-party datasets, documents and knowledge sources used by future Knowledge P
 | In design
 
 | Manifest schema
+| Draft `0.1.0`
+
+| Source, claim and evidence schemas
+| Draft `0.1.0`
+
+| Entity schema
+| Draft `0.1.0`
+
+| Relation, concept, conflict, translation, evaluation, policy and artifact schemas
 | Not started
 
-| Validator
-| Not started
+| Reference validator
+| Initial implementation
 
 | Minimal example pack
-| Not started
+| Available
 
 | Stable specification
 | Not released

@@ -13,7 +13,9 @@ The example demonstrates:
 
 * a valid `aladin-pack.yml` manifest
 * one source record
+* one precise evidence record
 * one source-backed claim
+* one canonical entity referenced by that claim
 * declarative content only
 * relative entry-point paths
 * explicit language and license metadata
@@ -28,19 +30,81 @@ minimal-pack/
 ├── aladin-pack.yml
 ├── claims/
 │   └── claims.jsonl
-└── sources/
-    └── sources.jsonl
+├── sources/
+│   └── sources.jsonl
+├── evidence/
+│   └── evidence.jsonl
+└── entities/
+    └── entities.jsonl
 ----
 
-== Important
+== Collections
 
-This example targets the draft `0.1.0` specification.
+[cols="1,1,2",options="header"]
+|===
+| Directory
+| Identifier namespace
+| Content
 
-The manifest is intended to validate against:
+| `claims/`
+| `claim:`
+| Knowledge statements. The example claim is a definition with status `source-backed`.
+
+| `sources/`
+| `source:`
+| Origins referenced by claims, evidence and entities. The example source is this repository's README.
+
+| `evidence/`
+| `evidence:`
+| Precise locations inside a source. The example evidence points at one README section.
+
+| `entities/`
+| `entity:`
+| Stable objects that claims and relations can reference. The example entity is the Knowledge Pack concept itself.
+|===
+
+Every file uses JSON Lines: exactly one JSON object per line.
+
+== Reference Graph
 
 [source,text]
 ----
-schemas/manifest.schema.json
+source:aladin.spec.readme
+        │
+        │ located in
+        ▼
+evidence:aladin.spec.readme.knowledge-pack-definition.001
+        │
+        │ supports
+        ▼
+claim:aladin.knowledge-pack.artifact.001
+        │
+        │ is about
+        ▼
+entity:aladin.knowledge-pack
 ----
 
-The claim and source records are illustrative until their dedicated normative schemas are added.
+Sources and evidence are kept separate on purpose. A source identifies an
+origin, while evidence identifies the exact part of that origin used for a
+claim.
+
+== Validation
+
+The pack is validated by the reference validator in this repository:
+
+[source,text]
+----
+python scripts/validate.py --pack examples/minimal-pack
+----
+
+The validator checks the manifest against `schemas/manifest.schema.json`,
+every record against its collection schema, identifier uniqueness, entry-point
+existence and every cross reference between records.
+
+== Important
+
+This example targets the draft `0.1.0` specification. No stable `1.0.0`
+specification has been released, so the structure may still change.
+
+The pack is declarative data only. Nothing in this directory is intended to be
+executed by a consuming runtime.
