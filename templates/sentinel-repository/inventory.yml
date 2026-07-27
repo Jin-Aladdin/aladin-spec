@@ -1,0 +1,44 @@
+inventory_version: "0.1.0"
+
+# Replace the entries below with the repositories this sentinel watches.
+# Validates against schemas/sentinel-inventory.schema.json in aladdin-spec.
+#
+# A threshold that is not declared is not checked. That is deliberate: a
+# repository opts out of a check by leaving it unset, rather than the sentinel
+# inventing a default and reporting noise.
+
+defaults:
+  commit_max_age_days: 120
+  validation_max_age_days: 45
+  require_enabled_workflows: true
+
+repositories:
+  - repository: Jin-Aladdin/aladdin-spec
+    role: specification
+    thresholds:
+      # A specification repository is not expected to publish often, so no
+      # release threshold is set. It is expected to keep validating.
+      validation_max_age_days: 45
+      commit_max_age_days: 180
+    recovery:
+      enabled: false
+    notes: >-
+      The specification repository. It runs no knowledge updates by design
+      (ADR-0005), so no update threshold applies.
+
+  # Example of a Knowledge Pack repository. Remove or replace.
+  # - repository: Jin-Aladdin/aladdin-kb-example
+  #   role: knowledge-pack
+  #   thresholds:
+  #     update_max_age_days: 21
+  #     release_max_age_days: 180
+  #   recovery:
+  #     enabled: true
+  #     dispatch_event: aladdin-update
+
+reporting:
+  open_issues: true
+  issue_label: sentinel
+  # Failing the run makes the signal loud. Leaving it false keeps the run
+  # history readable when a target is knowingly dormant.
+  fail_workflow_on_unhealthy: false

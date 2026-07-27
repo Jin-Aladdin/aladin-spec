@@ -1,0 +1,125 @@
+name: Sentinel
+
+# Watches other repositories from outside.
+#
+# A repository cannot reliably report its own silence: when its scheduled
+# workflows are disabled after prolonged inactivity, the heartbeat that would
+# have noticed is disabled with them. The observer has to live elsewhere
+# (ADR-0005).
+#
+# This workflow reads public signals and reports. It never edits knowledge
+# content in a watched repository. The strongest action it can take is to ask
+# a repository to run a workflow that repository already declared.
+on:
+  schedule:
+    # Weekly, away from minute 0 to stay out of the congestion window.
+    - cron: "29 5 * * 4"
+  workflow_dispatch:
+    inputs:
+      dispatch_recovery:
+        description: Ask unhealthy repositories to run their recovery workflow
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    name: Observe the inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Check out the sentinel
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Check out the specification tooling
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: Jin-Aladdin/aladdin-spec
+          # Pin to an immutable ref before relying on this in production.
+          ref: v0.1.0
+          path: .aladdin-spec
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r .aladdin-spec/requirements-dev.txt
+
+      - name: Validate the inventory before acting on it
+        run: |
+          python - <<'PY'
+          import json, pathlib, sys, yaml
+          from jsonschema import Draft202012Validator
+
+          schema = json.loads(
+              pathlib.Path(".aladdin-spec/schemas/sentinel-inventory.schema.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          inventory = yaml.safe_load(pathlib.Path("inventory.yml").read_text(encoding="utf-8"))
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(inventory), key=lambda e: list(e.path)
+          )
+          for error in errors:
+              pointer = "/" + "/".join(str(part) for part in error.absolute_path)
+              print(f"{pointer}: {error.message}", file=sys.stderr)
+          sys.exit(1 if errors else 0)
+          PY
+
+      - name: Observe the watched repositories
+        id: observe
+        env:
+          # The repository-scoped token is enough to read public signals. An
+          # organization GitHub App is required only to dispatch recovery into
+          # another repository.
+          GITHUB_TOKEN: ${{ secrets.SENTINEL_TOKEN || github.token }}
+        run: |
+          set +e
+          python .aladdin-spec/scripts/sentinel_check.py \
+            --inventory inventory.yml \
+            --report sentinel-report.json \
+            --markdown sentinel-report.md \
+            ${{ inputs.dispatch_recovery && '--dispatch' || '' }} \
+            --fail-on-unhealthy
+          echo "unhealthy=$([ $? -eq 0 ] && echo false || echo true)" >> "$GITHUB_OUTPUT"
+          cat sentinel-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sentinel-report
+          path: |
+            sentinel-report.json
+            sentinel-report.md
+          retention-days: 90
+
+      - name: Open or update the sentinel issue
+        if: steps.observe.outputs.unhealthy == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          existing=$(gh issue list --state open --label sentinel --json number --jq '.[0].number')
+          if [ -n "${existing}" ]; then
+            gh issue comment "${existing}" --body-file sentinel-report.md
+          else
+            gh issue create \
+              --title "Sentinel: a watched repository needs attention" \
+              --label sentinel \
+              --body-file sentinel-report.md
+          fi

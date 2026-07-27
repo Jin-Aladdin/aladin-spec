@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.1.0/schemas/sentinel-inventory.schema.json",
+  "title": "Aladdin Sentinel Inventory",
+  "description": "Normative schema for the inventory a sentinel repository watches. The sentinel exists because a repository cannot reliably report its own silence: when its scheduled workflows are disabled, the thing that would notice is disabled with them. The inventory declares which repositories are watched and what counts as too quiet for each.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "inventory_version",
+    "defaults",
+    "repositories"
+  ],
+  "properties": {
+    "inventory_version": {
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "defaults": {
+      "$ref": "#/$defs/thresholds",
+      "description": "Applied to every repository that does not override them."
+    },
+    "repositories": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 500,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "repository",
+          "role"
+        ],
+        "properties": {
+          "repository": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+$",
+            "maxLength": 140,
+            "description": "Owner and name, for example Jin-Aladdin/aladdin-spec."
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "specification",
+              "knowledge-pack",
+              "automation",
+              "registry",
+              "sentinel"
+            ],
+            "description": "What the repository is. A specification repository is not expected to run knowledge updates, so it is not reported for their absence."
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          },
+          "thresholds": {
+            "$ref": "#/$defs/thresholds"
+          },
+          "recovery": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "How the sentinel may try to restart a silent repository. Dispatch is a request to run a declared workflow; it never edits content.",
+            "properties": {
+              "dispatch_event": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$",
+                "maxLength": 80,
+                "description": "repository_dispatch event type the target accepts."
+              },
+              "enabled": {
+                "type": "boolean",
+                "default": false
+              }
+            }
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      }
+    },
+    "reporting": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "open_issues": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open or update an issue in the sentinel repository when a watched repository is unhealthy."
+        },
+        "issue_label": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "maxLength": 50,
+          "default": "sentinel"
+        },
+        "fail_workflow_on_unhealthy": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether an unhealthy target should fail the sentinel run. Failing makes the signal loud; not failing keeps the history readable when a target is knowingly dormant."
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9]+(?:\\.[a-z0-9-]+)+$"
+      },
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Ages after which silence becomes a finding. Every threshold is optional: a check with no threshold is not performed, which is how a repository opts out of a check that does not apply to it.",
+      "properties": {
+        "validation_max_age_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650,
+          "description": "Age of the last successful validation run."
+        },
+        "update_max_age_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650,
+          "description": "Age of the last successful knowledge update run."
+        },
+        "release_max_age_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650,
+          "description": "Age of the most recent release."
+        },
+        "commit_max_age_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3650,
+          "description": "Age of the newest commit. Prolonged inactivity is what causes a platform to disable scheduled workflows, so this is the leading indicator of coming silence."
+        },
+        "require_enabled_workflows": {
+          "type": "boolean",
+          "default": true,
+          "description": "Report a scheduled workflow that the platform has disabled."
+        }
+      }
+    }
+  }
+}

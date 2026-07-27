@@ -1,0 +1,125 @@
+= Aladdin Sentinel Repository Template
+Jin-Aladdin
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+
+Starting point for the repository that watches the other Aladdin repositories.
+
+== Why a Separate Repository
+
+A repository cannot reliably report its own silence.
+
+GitHub disables scheduled workflows after prolonged inactivity. When that
+happens to a Knowledge Pack repository, the heartbeat that was supposed to
+notice is disabled along with everything else. The repository then looks
+healthy in the only way it can still report: by saying nothing.
+
+The observer therefore has to live somewhere the failure does not reach. That
+is the whole argument for a sentinel, and it is why this template exists as a
+separate repository rather than another workflow in an existing one.
+
+The sentinel has the same weakness, one level up: it can go quiet too. That is
+an accepted, documented limit rather than a solved problem. It is mitigated by
+keeping the sentinel small and boring, so it has few reasons to break, and by
+watching its own repository from the inventory.
+
+== Setup
+
+. Create a repository, ideally in the organization rather than under a personal
+  account. A sentinel bound to one person's account inherits exactly the
+  succession problem it is meant to reduce.
+. Copy this directory into it.
+. Edit `inventory.yml`: list the repositories to watch, their roles and their
+  thresholds.
+. Run the workflow manually once and read the report.
+. Only then rely on the schedule.
+
+== Structure
+
+[source,text]
+----
+sentinel-repository/
+├── README.adoc
+├── inventory.yml
+└── .github/
+    └── workflows/
+        └── sentinel.yml
+----
+
+The checking logic is not copied here. The workflow checks out
+`Jin-Aladdin/aladdin-spec` at a pinned tag and runs
+`scripts/sentinel_check.py` from it, so the logic has one implementation.
+
+== What It Checks
+
+[cols="1,2",options="header"]
+|===
+| Check
+| Meaning
+
+| Commit age
+| How long since anything changed. This is the leading indicator: prolonged
+  inactivity is what causes a platform to disable scheduled workflows.
+
+| Validation age
+| How long since a validation run last succeeded. A repository whose gates
+  stopped running is unverified, whatever its content says.
+
+| Update age
+| How long since a knowledge update last succeeded. Applied only to
+  Knowledge Pack repositories, since a specification repository runs no
+  updates by design.
+
+| Release age
+| How long since the most recent release.
+
+| Disabled workflows
+| Whether the platform has disabled automation. This is the failure the
+  sentinel exists for, and it is reported as critical.
+
+| Reachability
+| Whether the repository can be read at all. A repository that was renamed,
+  made private or deleted stops answering, and silence from an unreachable
+  repository must not be mistaken for health.
+|===
+
+A threshold that is not declared is not checked. A repository opts out of a
+check by leaving it unset, rather than the sentinel inventing a default and
+producing noise nobody reads.
+
+== What It Must Never Do
+
+* Change knowledge content in a watched repository.
+* Merge anything.
+* Publish anything.
+* Raise a confidence value, resolve a conflict or grant a license clearance.
+
+The strongest action available to it is `repository_dispatch`: asking a
+repository to run a workflow that repository already declared. That workflow
+still runs its own gates. The sentinel starts automation; it does not bypass
+it.
+
+== Permissions
+
+The repository-scoped token is sufficient to read public signals and to open an
+issue in the sentinel's own repository.
+
+Dispatching recovery into another repository needs a credential that reaches
+that repository, which means an organization-owned GitHub App rather than a
+personal access token. Until that exists, leave `recovery.enabled` set to
+`false` and treat the report as the output.
+
+== Limits
+
+Stated plainly, because a monitoring tool that oversells itself is worse than
+none.
+
+* The sentinel can go quiet itself. Nothing here watches the watcher.
+* It reports absence of activity, not correctness. A repository that runs
+  daily and publishes wrong knowledge looks perfectly healthy to it.
+* It depends on the same platform as everything it watches. A platform-wide
+  outage takes the observer with the observed.
+* Reachability failures and genuine dormancy look similar from outside, which
+  is why an unreachable repository is reported rather than assumed healthy.
