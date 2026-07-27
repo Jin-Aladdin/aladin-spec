@@ -103,10 +103,18 @@ DEFAULT_MAX_FILES = 5_000
 #: them reports the tooling instead of the content: a git checkout alone
 #: contributes hooks, packed objects and config files that are not knowledge
 #: and were never claimed to be.
+#:
+#: ``scripts`` and ``tools`` are here because ADR-0003 permits exactly that:
+#: a source repository may hold validation scripts, conversion tools, data
+#: importers and artifact builders. What the rule forbids is executable content
+#: reaching the consumer, and the artifact builder excludes these directories,
+#: so nothing from them is ever published or run by a runtime.
 IGNORED_DIRECTORIES = frozenset(
     {
         ".git",
         ".github",
+        "scripts",
+        "tools",
         ".candidate",
         ".venv",
         "venv",

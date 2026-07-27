@@ -10,6 +10,19 @@ The specification follows Semantic Versioning. While the series is `0.x`,
 breaking changes are possible between minor versions and every one of them is
 announced in this file.
 
+== Unreleased
+
+=== Fixed
+
+* The security gate quarantined every candidate in a pack repository that
+  contained build tooling, which ADR-0003 explicitly permits: a source
+  repository may hold validation scripts, conversion tools, data importers and
+  artifact builders. The rule is about what reaches a consumer, not about what
+  a repository may contain. `scripts` and `tools` are now treated as repository
+  content by the scanner and excluded from published artifacts by the builder,
+  so nothing from them can be shipped or executed. Found while building the
+  first real Knowledge Pack, whose glossary importer lives in `scripts`.
+
 == 0.2.1, 2026-07-27
 
 A patch release so the templates can pin to a version that contains the
