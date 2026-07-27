@@ -47,7 +47,8 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: Jin-Aladdin/aladdin-spec
-          # Pin to an immutable ref before relying on this in production.
+          # Pin to an immutable ref: a release tag, or a commit SHA when the
+          # tooling you need is newer than the latest tag. Never a branch.
           ref: v0.1.0
           path: .aladdin-spec
 
@@ -114,6 +115,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # A fresh repository has no labels, and a missing label must not
+          # discard a report that was already produced.
+          gh label create sentinel \
+            --description "Raised by the sentinel" \
+            --color B60205 \
+            --force >/dev/null 2>&1 || true
           existing=$(gh issue list --state open --label sentinel --json number --jq '.[0].number')
           if [ -n "${existing}" ]; then
             gh issue comment "${existing}" --body-file sentinel-report.md
