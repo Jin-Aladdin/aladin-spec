@@ -14,6 +14,12 @@ announced in this file.
 
 === Added
 
+* `scripts/new_knowledge_pack.py` and `CREATING-A-KNOWLEDGE-PACK.adoc`: generate
+  a Knowledge Pack repository from the controlled template, with the identity
+  substituted throughout and the result validated before it is returned. A
+  generator that emits an invalid pack is worse than none, so it fails rather
+  than handing over a broken starting point.
+
 * `scripts/backup_bundle.py` and `.github/workflows/backup-mirror.yml`: a
   monthly verified git bundle carrying full history, branches and tags, plus an
   optional push to an independent remote. The bundle restores with `git clone`
@@ -109,6 +115,10 @@ The `0.1.0` schemas are now frozen. Further changes belong to the next version.
 
 === Changed
 
+* The Knowledge Pack template pinned its tooling to `ref: main` in all five
+  workflows, so a real pack repository would have taken its gates from a moving
+  branch. Now pinned to `v0.1.0`, and a test rejects anything that is not a
+  release tag or a commit SHA.
 * Every workflow, in this repository and in the template, now declares a
   per-job runtime ceiling and pins every action to a commit SHA. Previously no
   job bounded its runtime and every action was referenced by a mutable tag, so

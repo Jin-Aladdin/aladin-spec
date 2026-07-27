@@ -506,6 +506,21 @@ The specification will be designed and tested before large-scale repository gene
 
 The validator, gateway and repository factory must follow the specification. The specification must not be reverse-engineered from an already rigid implementation.
 
+== Creating a Knowledge Pack
+
+link:CREATING-A-KNOWLEDGE-PACK.adoc[CREATING-A-KNOWLEDGE-PACK.adoc] walks
+through it end to end: generate from the controlled template, replace the
+placeholder records, declare the sources, push, and raise the automation level
+one deliberate step at a time.
+
+[source,text]
+----
+python scripts/new_knowledge_pack.py   --id aladdin-kb-docker   --name "Aladdin Docker Knowledge Pack"   --description "Structured, source-backed knowledge about Docker tooling."   --domain docker   --out ../aladdin-kb-docker
+----
+
+The generator validates what it produced before returning it. A generated pack
+starts inert: automation disabled, level `detect`, no real source declared.
+
 == Contributing
 
 See link:CONTRIBUTING.adoc[CONTRIBUTING.adoc] for the gates, the documentation
