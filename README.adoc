@@ -541,6 +541,13 @@ The specification will be designed and tested before large-scale repository gene
 
 The validator, gateway and repository factory must follow the specification. The specification must not be reverse-engineered from an already rigid implementation.
 
+== Continuing This Project
+
+link:AGENTS.md[AGENTS.md] is the entry point for anyone picking this up: a
+person, or an AI assistant asked to help. It states the rules that are not
+negotiable, what an assistant may and may not produce, and what the project
+deliberately does not solve.
+
 == Creating a Knowledge Pack
 
 link:CREATING-A-KNOWLEDGE-PACK.adoc[CREATING-A-KNOWLEDGE-PACK.adoc] walks

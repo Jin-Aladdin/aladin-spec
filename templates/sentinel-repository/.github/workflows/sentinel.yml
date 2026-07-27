@@ -21,6 +21,11 @@ on:
         required: false
         default: false
         type: boolean
+      discover_owner:
+        description: Account or organization to scan for new packs
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -36,7 +41,7 @@ jobs:
     timeout-minutes: 15
 
     permissions:
-      contents: read
+      contents: write
       issues: write
 
     steps:
@@ -61,6 +66,26 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r .aladdin-spec/requirements-dev.txt
+
+      - name: Discover new Knowledge Pack repositories
+        id: discovery
+        env:
+          GITHUB_TOKEN: ${{ secrets.SENTINEL_TOKEN || github.token }}
+        run: |
+          # A repository nobody watches can go quiet unnoticed. Requiring a
+          # manual inventory edit for every new pack makes that the default
+          # outcome, so discovery runs first and adds what it finds.
+          #
+          # It only ever adds. Removing an entry because a repository stopped
+          # answering would silence exactly the case worth reporting.
+          set +e
+          python .aladdin-spec/scripts/sentinel_discover.py             --owner "${{ inputs.discover_owner || github.repository_owner }}"             --inventory inventory.yml
+          case $? in
+            0) echo "added=false" >> "$GITHUB_OUTPUT" ;;
+            3) echo "added=true"  >> "$GITHUB_OUTPUT" ;;
+            *) echo "added=false" >> "$GITHUB_OUTPUT"
+               echo "discovery failed; continuing with the existing inventory" ;;
+          esac
 
       - name: Validate the inventory before acting on it
         run: |
@@ -100,6 +125,16 @@ jobs:
             --fail-on-unhealthy
           echo "unhealthy=$([ $? -eq 0 ] && echo false || echo true)" >> "$GITHUB_OUTPUT"
           cat sentinel-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit newly discovered repositories
+        if: steps.discovery.outputs.added == 'true'
+        run: |
+          # Inventory metadata only. This commit never touches knowledge.
+          git config user.name "aladdin-sentinel[bot]"
+          git config user.email "aladdin-sentinel[bot]@users.noreply.github.com"
+          git add inventory.yml
+          git commit -m "chore(sentinel): watch newly discovered Knowledge Packs"
+          git push
 
       - name: Upload the report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
