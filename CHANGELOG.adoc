@@ -10,6 +10,21 @@ The specification follows Semantic Versioning. While the series is `0.x`,
 breaking changes are possible between minor versions and every one of them is
 announced in this file.
 
+== Unreleased
+
+=== Added
+
+* `scripts/sentinel_discover.py` and a discovery step in the sentinel
+  workflow: Knowledge Pack repositories are found and added to the inventory
+  automatically. Requiring a manual edit for every new pack made the step that
+  protects against silence the step most likely to be skipped. Discovery only
+  ever adds: an entry that vanished from the listing is kept, because renamed,
+  private and unreachable look identical from outside and all three are worth
+  reporting rather than forgetting.
+* `AGENTS.md`, written for whoever continues this project, whether a person or
+  an AI assistant. It states the eight rules that are not negotiable, what an
+  assistant may and may not produce, and what is deliberately not solved.
+
 == 0.2.4, 2026-07-27
 
 A patch so a no-change update run stays green. No schema changed.

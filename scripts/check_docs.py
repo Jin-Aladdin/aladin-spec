@@ -32,6 +32,10 @@ SKIP_DIRECTORIES = {".git", ".venv", "venv", "__pycache__", ".pytest_cache", "no
 ALLOWED_MARKDOWN = {
     ".github/pull_request_template.md",
     ".github/ISSUE_TEMPLATE/config.md",
+    # AI coding tools look for this file by name. Documentation is AsciiDoc;
+    # this is the one exception, and it exists because the convention is not
+    # ours to change.
+    "AGENTS.md",
 }
 
 BLOCK_DELIMITER = "----"
