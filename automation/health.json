@@ -1,17 +1,18 @@
 {
   "health_version": "0.1.0",
-  "generated_at": "2026-07-27T12:00:00Z",
+  "generated_at": "2026-07-27T14:46:42Z",
   "checks": {
     "documentation": "pass",
     "security": "pass",
+    "tests": "pass",
     "validate": "pass"
   },
   "repository": {
-    "last_commit_at": "2026-07-27T10:07:21Z",
+    "last_commit_at": "2026-07-27T14:40:13Z",
     "days_since_commit": 0
   },
   "release": {
-    "last_version": "",
+    "last_version": "v0.2.1",
     "last_release_at": "",
     "days_since_release": null
   },
@@ -20,5 +21,5 @@
   },
   "stale": false,
   "reasons": [],
-  "next_check_due": "2026-07-28T12:00:00Z"
+  "next_check_due": "2026-07-28T14:46:42Z"
 }
