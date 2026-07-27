@@ -1,0 +1,105 @@
+name: Backup and mirror
+
+# The open standard must not depend on a single provider (ADR-0005). This
+# workflow produces a self-contained git bundle, proves it restores, and
+# optionally pushes to an independent remote.
+#
+# The bundle is the part that needs no configuration: history, branches and
+# tags in one file, restorable with `git clone backup.bundle` and no network.
+# The second remote is optional and degrades cleanly when it is not
+# configured, so this workflow is useful before any mirror exists.
+on:
+  schedule:
+    # Monthly, away from minute 0 to stay out of the congestion window.
+    - cron: "43 3 2 * *"
+  workflow_dispatch:
+    inputs:
+      skip_mirror:
+        description: Produce the bundle only, even if a mirror is configured
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-mirror
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Bundle, verify and mirror
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      # Empty when no mirror is configured. Reading it into env is what makes
+      # a conditional step possible; the value stays masked in logs.
+      MIRROR_URL: ${{ secrets.MIRROR_REMOTE_URL }}
+
+    steps:
+      - name: Check out the full history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # A shallow clone cannot produce a usable backup.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+
+      - name: Create and verify the bundle
+        id: bundle
+        run: |
+          mkdir -p backup
+          stamp=$(date -u +%Y%m%d)
+          name="aladdin-spec-${stamp}-${GITHUB_SHA::7}.bundle"
+          python scripts/backup_bundle.py \
+            --out "backup/${name}" \
+            --checksum-file "backup/${name}.sha256" | tee backup/report.txt
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload the bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: repository-bundle
+          path: backup/
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Push to the independent mirror
+        if: env.MIRROR_URL != '' && inputs.skip_mirror != true
+        run: |
+          # --all --tags rather than --mirror, and no --force. A mirror push
+          # would propagate deletions and rewrites, so a mistake or a
+          # compromise in the origin would destroy the backup too. A backup
+          # that can be erased from the thing it backs up is not a backup.
+          git remote add mirror "${MIRROR_URL}"
+          git push mirror --all
+          git push mirror --tags
+          echo "Pushed branches and tags to the configured mirror." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Write the summary
+        if: always()
+        run: |
+          {
+            echo "## Backup"
+            echo
+            echo '```'
+            cat backup/report.txt 2>/dev/null || echo "no bundle was produced"
+            echo '```'
+            echo
+            if [ -z "${MIRROR_URL}" ]; then
+              echo "No independent mirror is configured. The bundle above is a complete"
+              echo "backup on its own: \`git clone <bundle>\` restores history and tags"
+              echo "with no network and no hosting provider."
+              echo
+              echo "To add a mirror, set the repository secret \`MIRROR_REMOTE_URL\` to a"
+              echo "push URL on an independent host."
+            else
+              echo "An independent mirror is configured."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
