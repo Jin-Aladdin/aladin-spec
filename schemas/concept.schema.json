@@ -1,0 +1,383 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jin-Aladdin/aladdin-spec/blob/main/schemas/concept.schema.json",
+  "title": "Aladdin Knowledge Concept",
+  "description": "Normative schema for a concept record in an Aladdin Knowledge Pack. A concept provides normalized topic and semantic classification so that claims, entities and relations from different packs can be grouped and retrieved consistently. A concept is a classification handle, not an assertion about the world, and it is deliberately distinct from an entity: an entity denotes a specific object, a concept denotes a category of meaning.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "preferred_label",
+    "language",
+    "status",
+    "created_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^concept:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "minLength": 11,
+      "maxLength": 240,
+      "description": "Stable namespaced identifier beginning with concept:."
+    },
+    "preferred_label": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "Preferred human-readable label in the declared language."
+    },
+    "alternative_labels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 200,
+      "description": "Synonyms and alternative spellings that denote the same concept."
+    },
+    "hidden_labels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 200,
+      "description": "Labels kept for retrieval only, for example common misspellings. They are matched but not displayed."
+    },
+    "definition": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000,
+      "description": "What this concept covers. A definition scopes the classification; it is not a knowledge claim and carries no confidence value."
+    },
+    "scope_note": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Guidance on when to use this concept and when to use a neighbouring one."
+    },
+    "language": {
+      "$ref": "#/$defs/languageTag"
+    },
+    "scheme": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "description": "Classification scheme this concept belongs to, for example an internal taxonomy or a published vocabulary.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        }
+      }
+    },
+    "broader": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/conceptId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 50,
+      "description": "More general concepts. A concept must not list itself."
+    },
+    "narrower": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/conceptId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 500,
+      "description": "More specific concepts."
+    },
+    "related": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/conceptId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 200,
+      "description": "Associated concepts that are neither broader nor narrower."
+    },
+    "exact_matches": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/externalMatch"
+      },
+      "uniqueItems": true,
+      "maxItems": 50,
+      "description": "Concepts in external vocabularies that mean the same thing."
+    },
+    "close_matches": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/externalMatch"
+      },
+      "uniqueItems": true,
+      "maxItems": 50,
+      "description": "External concepts that overlap but are not identical. Kept separate from exact matches so an approximate mapping is never treated as an equivalence."
+    },
+    "entity_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/entityId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 500,
+      "description": "Entities that are typical instances of this concept."
+    },
+    "source_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sourceId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 100
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidenceId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 500
+    },
+    "provenance": {
+      "type": "string",
+      "enum": [
+        "unsourced",
+        "source-linked",
+        "source-backed",
+        "evidence-backed",
+        "imported"
+      ],
+      "description": "How this concept definition is supported. imported means it was taken from an external scheme, which must then be declared."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "provisional",
+        "merged",
+        "deprecated",
+        "invalidated"
+      ]
+    },
+    "merged_into": {
+      "$ref": "#/$defs/conceptId",
+      "description": "Concept that replaces this one after deduplication. Required when the status is merged."
+    },
+    "replaced_by": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/conceptId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 50,
+      "description": "Concepts that take over the meaning of a deprecated concept."
+    },
+    "invalidation_reason": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 2000
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 3000
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Namespaced extension data using reverse-DNS keys.",
+      "propertyNames": {
+        "pattern": "^[a-z0-9]+(?:\\.[a-z0-9-]+)+$"
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "description": "A merged concept must name its replacement.",
+      "if": {
+        "properties": {
+          "status": {
+            "const": "merged"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "merged_into"
+        ]
+      }
+    },
+    {
+      "description": "An invalidated concept must say why.",
+      "if": {
+        "properties": {
+          "status": {
+            "const": "invalidated"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "invalidation_reason"
+        ]
+      }
+    },
+    {
+      "description": "An imported concept must declare the scheme it came from.",
+      "if": {
+        "properties": {
+          "provenance": {
+            "const": "imported"
+          }
+        },
+        "required": [
+          "provenance"
+        ]
+      },
+      "then": {
+        "required": [
+          "scheme"
+        ]
+      }
+    },
+    {
+      "description": "Source-supported provenance requires source references.",
+      "if": {
+        "properties": {
+          "provenance": {
+            "enum": [
+              "source-linked",
+              "source-backed"
+            ]
+          }
+        },
+        "required": [
+          "provenance"
+        ]
+      },
+      "then": {
+        "required": [
+          "source_ids"
+        ]
+      }
+    },
+    {
+      "description": "Evidence-supported provenance requires evidence references.",
+      "if": {
+        "properties": {
+          "provenance": {
+            "const": "evidence-backed"
+          }
+        },
+        "required": [
+          "provenance"
+        ]
+      },
+      "then": {
+        "required": [
+          "evidence_ids"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "languageTag": {
+      "type": "string",
+      "pattern": "^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$",
+      "description": "BCP 47-style language tag."
+    },
+    "conceptId": {
+      "type": "string",
+      "pattern": "^concept:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "entityId": {
+      "type": "string",
+      "pattern": "^entity:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "sourceId": {
+      "type": "string",
+      "pattern": "^source:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "evidenceId": {
+      "type": "string",
+      "pattern": "^evidence:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "externalMatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scheme",
+        "identifier"
+      ],
+      "properties": {
+        "scheme": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "identifier": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        }
+      }
+    }
+  }
+}

@@ -1,22 +1,12 @@
 schema_version: "0.1.0"
 
 pack:
-  id: aladdin-kb-example
-  name: Aladdin Example Knowledge Pack
+  id: aladdin-kb-relation-model-derivation-without-model
+  name: Aladdin Kb Minimal Pack
   version: "0.1.0"
   description: >-
-    Minimal reference Knowledge Pack used to demonstrate the Aladdin manifest,
-    source provenance, precise evidence and declarative artifact structure.
-  homepage: https://github.com/Jin-Aladdin/aladdin-spec
-  repository: https://github.com/Jin-Aladdin/aladdin-spec
-  keywords:
-    - aladdin
-    - example
-    - knowledge-pack
-    - provenance
-    - evidence
-    - entities
-    - relations
+    Fixture Knowledge Pack used by the Aladdin specification test suite to
+    exercise one specific validation rule.
 
 specification:
   name: aladdin-knowledge-pack
@@ -28,22 +18,21 @@ specification:
 
 content:
   domains:
-    - example
-    - knowledge-packs
+    - test
   content_types:
     - claims
     - sources
     - evidence
     - entities
-    - concepts
     - relations
+    - concepts
   entry_points:
     - claims/claims.jsonl
     - sources/sources.jsonl
     - evidence/evidence.jsonl
     - entities/entities.jsonl
-    - concepts/concepts.jsonl
     - relations/relations.jsonl
+    - concepts/concepts.jsonl
 
 languages:
   primary: en

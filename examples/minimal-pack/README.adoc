@@ -15,7 +15,9 @@ The example demonstrates:
 * one source record
 * one precise evidence record
 * one source-backed claim
-* one canonical entity referenced by that claim
+* two canonical entities
+* one concept that classifies them
+* one typed relation connecting the entities
 * declarative content only
 * relative entry-point paths
 * explicit language and license metadata
@@ -34,8 +36,12 @@ minimal-pack/
 │   └── sources.jsonl
 ├── evidence/
 │   └── evidence.jsonl
-└── entities/
-    └── entities.jsonl
+├── entities/
+│   └── entities.jsonl
+├── concepts/
+│   └── concepts.jsonl
+└── relations/
+    └── relations.jsonl
 ----
 
 == Collections
@@ -60,7 +66,15 @@ minimal-pack/
 
 | `entities/`
 | `entity:`
-| Stable objects that claims and relations can reference. The example entity is the Knowledge Pack concept itself.
+| Stable objects that claims and relations can reference. The examples are the Knowledge Pack itself and the specification that defines it.
+
+| `concepts/`
+| `concept:`
+| Classification handles for retrieval and grouping. The example concept is the Knowledge Pack category.
+
+| `relations/`
+| `relation:`
+| Typed connections between entities, concepts and claims. The example relation records that the Knowledge Pack is defined by the specification.
 |===
 
 Every file uses JSON Lines: exactly one JSON object per line.
@@ -81,12 +95,20 @@ claim:aladdin.knowledge-pack.artifact.001
         │
         │ is about
         ▼
-entity:aladdin.knowledge-pack
+entity:aladdin.knowledge-pack ──── defined-by ────► entity:aladdin.specification
+        │
+        │ classified as
+        ▼
+concept:knowledge-pack
 ----
 
 Sources and evidence are kept separate on purpose. A source identifies an
 origin, while evidence identifies the exact part of that origin used for a
 claim.
+
+Entities and concepts are separate for a similar reason. An entity denotes one
+specific object; a concept denotes a category of meaning that several entities
+can belong to.
 
 == Validation
 

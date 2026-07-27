@@ -94,6 +94,12 @@ INVALID_CASES = [
     ("missing-entry-point", "declared path does not exist"),
     ("unknown-core-field", "Additional properties are not allowed"),
     ("unsafe-relative-path", "traverse outside the pack directory"),
+    ("relation-dangling-target", "concept:fixture.absent does not exist in concepts"),
+    ("relation-undefined-type", "is not valid under any of the given schemas"),
+    ("relation-inferred-without-derivation", "'derivation' is a required property"),
+    ("relation-model-derivation-without-model", "'model' is a required property"),
+    ("concept-merged-without-target", "'merged_into' is a required property"),
+    ("concept-imported-without-scheme", "'scheme' is a required property"),
 ]
 
 

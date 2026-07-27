@@ -1,0 +1,1 @@
+{"id":"relation:fixture.record.defined-by.doc","type":"defined-by","from":"entity:fixture.record","to":"concept:fixture.testing","provenance":"inferred","status":"active","created_at":"2026-07-27T00:00:00Z"}
