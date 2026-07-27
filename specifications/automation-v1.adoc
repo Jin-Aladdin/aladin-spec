@@ -1,0 +1,760 @@
+= Aladdin Knowledge Pack Automation Specification, Version 1 Draft
+Jin-Aladdin
+:description: Normative specification for autonomous maintenance, validation, versioning and publication of Aladdin Knowledge Packs.
+:toc: macro
+:toc-title: Contents
+:toclevels: 3
+:sectanchors:
+:sectlinks:
+:icons: font
+:source-highlighter: rouge
+
+[IMPORTANT]
+====
+Status: *Draft*. Specification series `0.x`. No stable `1.0.0` automation
+specification has been released and the structures below may still change.
+
+This document implements ADR-0005. Where this document and ADR-0005 disagree,
+ADR-0005 governs.
+====
+
+toc::[]
+
+== Scope
+
+This specification defines how an Aladdin repository maintains its knowledge
+without a continuously present human maintainer: how sources are declared, how
+candidates are produced, which gates a candidate must pass, how versions are
+computed, how artifacts are published and how the system behaves when something
+fails.
+
+It applies to two repository roles.
+
+[cols="1,3",options="header"]
+|===
+| Role
+| Automation obligations
+
+| Specification repository
+| Validation, documentation checks, compatibility tests, security gates, release
+  creation, artifact attestation and automation health monitoring. Automatic
+  source synchronization is not permitted.
+
+| Knowledge Pack repository
+| Everything above, plus automatic source synchronization under a declared
+  update policy.
+|===
+
+=== Conformance Language
+
+The key words MUST, MUST NOT, REQUIRED, SHOULD, SHOULD NOT and MAY are used in
+their conventional specification sense. A repository that violates a MUST is not
+conformant with this specification.
+
+== Terminology
+
+[cols="1,3",options="header"]
+|===
+| Term
+| Definition
+
+| Retrieval
+| One controlled fetch of one declared source through one declared adapter.
+
+| Candidate
+| A proposed change derived from a retrieval. A candidate is untrusted data.
+
+| Gate
+| A check that a candidate MUST pass before it may advance to the next phase.
+
+| Promotion
+| Advancing a candidate from one phase to the next after all gates for that
+  phase passed.
+
+| Quarantine
+| Isolating a candidate that failed a gate, retaining it for later inspection
+  without merging it.
+
+| Valid version
+| The most recent pack version that passed every gate and was published.
+
+| Audit record
+| An append-only entry describing one automated decision and its inputs.
+|===
+
+== Repository Layout
+
+A conformant Knowledge Pack repository MUST provide the following structure.
+Names MAY be adapted, but any adaptation MUST be documented in the repository.
+
+[source,text]
+----
+.github/
+└── workflows/
+    ├── validate.yml
+    ├── update-knowledge.yml
+    ├── release-pack.yml
+    ├── automation-health.yml
+    └── manual-recovery.yml
+
+automation/
+├── update-policy.yml
+├── state.json
+├── health.json
+├── audit/
+│   └── <year>-<month>.jsonl
+└── quarantine/
+    └── <candidate-id>/
+
+scripts/
+├── validate_pack.py
+├── sync_sources.py
+├── normalize_content.py
+├── detect_changes.py
+├── evaluate_candidate.py
+├── build_artifact.py
+└── publish_release.py
+
+tests/
+├── test_validation.py
+├── test_updates.py
+├── test_references.py
+├── test_security.py
+└── fixtures/
+----
+
+=== Deviation From the Initial Sketch
+
+ADR-0005 was drafted with four separate policy files: `sources.yml`,
+`update-policy.yml`, `trust-policy.yml` and `state.json`.
+
+This specification consolidates the first three into a single
+`automation/update-policy.yml`. The reason is referential integrity: a source
+entry, its trust level, its license policy and its limits are validated
+together, and three files would need cross-file references that no single schema
+could check. One file with one schema makes the policy verifiable in one pass.
+
+`automation/state.json` remains a separate file because it is machine-written
+output, not human-authored policy. `automation/health.json` is added for the
+same reason.
+
+== Update Policy
+
+Every Knowledge Pack repository MUST contain `automation/update-policy.yml`.
+The file MUST validate against `schemas/update-policy.schema.json`.
+
+A repository without a valid update policy has no automated maintenance. Its
+automation workflows MUST fail closed rather than fall back to a default policy.
+
+The policy declares, at minimum:
+
+* the pack identifier it applies to
+* whether automation is enabled
+* the automation level and cadence
+* the failure mode
+* global limits
+* one entry per source, with adapter, allowed domains, license policy, change
+  detection method, trust level, risk class and per-source limits
+* gate configuration
+* release rules
+* notification rules
+
+A minimal example:
+
+[source,yaml]
+----
+policy_version: "0.1.0"
+
+pack:
+  id: aladdin-kb-example
+
+automation:
+  enabled: true
+  level: propose
+  cadence: weekly
+  failure_mode: keep-last-valid
+  update_mode: pull-request
+  release_mode: after-validation
+
+limits:
+  max_run_minutes: 30
+  max_sources_per_run: 20
+  max_download_bytes: 10000000
+  max_total_download_bytes: 100000000
+  max_files: 500
+  max_artifact_bytes: 50000000
+  max_retries: 3
+  max_api_calls: 500
+
+gates:
+  schema_validation: required
+  reference_validation: required
+  security_scan: required
+  license_check: required
+  evaluation_suite: required
+
+sources:
+  - id: source:example.official-documentation
+    adapter: html-documentation
+    url: https://example.org/documentation
+    allowed_domains:
+      - example.org
+    risk_class: low
+    trust:
+      level: primary
+    license:
+      policy: documented
+      expression: CC-BY-4.0
+      attribution_required: true
+    change_detection:
+      method: content-hash
+    limits:
+      max_download_bytes: 5000000
+      timeout_seconds: 30
+      max_redirects: 3
+    allowed_media_types:
+      - text/html
+
+release:
+  versioning: deterministic
+  require_clean_evaluation: true
+  attestation: required
+
+notifications:
+  on_failure: issue
+  on_quarantine: issue
+  on_release: workflow-summary
+----
+
+This example is illustrative. The schema is normative.
+
+== Source Adapters
+
+A source MUST be processed only by an adapter named in the policy. Adapter
+implementations live in the repository's controlled maintenance layer. They MUST
+NOT be supplied, selected or parameterized by Knowledge Pack content.
+
+=== Adapter Registry
+
+[cols="1,3",options="header"]
+|===
+| Adapter
+| Input
+
+| `static-file`
+| A file at a fixed URL or a path inside the repository.
+
+| `git-repository`
+| A pinned revision of a git repository.
+
+| `github-release`
+| Release metadata for a named repository.
+
+| `json-api`
+| A JSON document at a fixed endpoint.
+
+| `feed`
+| An RSS or Atom feed.
+
+| `html-documentation`
+| An HTML documentation page.
+
+| `pdf-document`
+| A PDF document.
+
+| `structured-dataset`
+| A CSV, Parquet or similarly structured dataset.
+
+| `standards-document`
+| A published standards document.
+|===
+
+=== Adapter Contract
+
+Every adapter MUST:
+
+. accept only the declared input shape from the policy
+. resolve network targets against the source allowlist and refuse anything else
+. apply the declared timeout
+. apply the declared download size limit and abort the transfer when exceeded
+. limit redirects to the declared maximum and re-check the allowlist after each
+  redirect
+. verify the response content type against `allowed_media_types`
+. treat every retrieved byte as untrusted data
+. compute and record a SHA-256 hash of the retrieved content
+. record the retrieval time, the final URL and the adapter version
+. preserve the original source reference without rewriting it
+. report failures as structured errors, never as a partial success
+
+Every adapter MUST NOT:
+
+. execute any command, script or macro contained in retrieved content
+. import Python modules named by pack content or by policy content
+. install dependencies derived from retrieved content
+. follow references outside the allowlist
+. write outside the candidate working directory
+. modify the last valid pack version
+
+=== Retrieval Record
+
+Each retrieval MUST produce a record with at least these fields:
+
+[source,json]
+----
+{
+  "source_id": "source:example.official-documentation",
+  "adapter": "html-documentation",
+  "adapter_version": "0.1.0",
+  "requested_url": "https://example.org/documentation",
+  "final_url": "https://example.org/documentation",
+  "retrieved_at": "2026-07-27T00:00:00Z",
+  "status": "ok",
+  "http_status": 200,
+  "media_type": "text/html",
+  "size_bytes": 48213,
+  "content_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "redirects": 0
+}
+----
+
+The retrieval record is an input to the audit trail. It is not itself evidence
+that the retrieved content is correct.
+
+== Change Detection
+
+The policy declares one change-detection method per source.
+
+[cols="1,3",options="header"]
+|===
+| Method
+| Meaning
+
+| `content-hash`
+| The normalized content hash differs from the recorded hash.
+
+| `etag`
+| The HTTP entity tag differs. MUST be combined with a hash check before a
+  candidate is generated.
+
+| `last-modified`
+| The reported modification time is newer. Advisory only; MUST be confirmed by
+  a hash check.
+
+| `version-field`
+| A declared structured field, for example a release tag, changed.
+
+| `structural-diff`
+| A declared structural comparison over parsed content reports a difference.
+|===
+
+An unchanged source MUST end the run with a recorded no-change result. It MUST
+NOT produce a candidate, a commit or a release.
+
+== Candidate Generation
+
+A candidate MUST be produced in an isolated working directory and MUST NOT
+modify the current pack content in place.
+
+Candidate generation produces canonical records: sources, evidence, claims,
+entities and any other declared content type. Generation MUST:
+
+* preserve the originating source identifier
+* attach evidence with a precise locator, never a whole-document reference used
+  as proof for an unrelated statement
+* record retrieval time and content hash on the source record
+* leave confidence values unchanged unless a deterministic rule raises or lowers
+  them, and record which rule applied
+* preserve any prior record it supersedes rather than deleting it
+
+Generation MUST NOT invent sources, invent evidence or raise confidence to make
+a gate pass.
+
+== Gates
+
+Gates run in the declared order. A failing gate stops promotion.
+
+[cols="1,3",options="header"]
+|===
+| Gate
+| Requirement
+
+| Schema validation
+| Every generated record validates against its schema and the manifest validates
+  against the manifest schema.
+
+| Reference validation
+| Every cross reference resolves, identifiers are unique per collection and
+  every declared entry point exists inside the pack.
+
+| Security scan
+| No executable content, no path traversal, no undeclared binary content, no
+  archive escaping its extraction boundary, declared size and file-count limits
+  respected.
+
+| License check
+| Every touched source has a documented license, the license permits the
+  intended reuse and required attribution is present.
+
+| Evaluation suite
+| The repository's declared retrieval and quality evaluations pass at or above
+  their declared thresholds.
+|===
+
+A gate result MUST be recorded with its outcome, its duration and the identity
+and version of the tool that produced it.
+
+== Automation Levels
+
+Levels are cumulative. A level MUST NOT be declared unless every gate required
+by the levels below it exists and runs.
+
+[cols="1,1,3",options="header"]
+|===
+| Level
+| Key
+| Permitted effect
+
+| 1
+| `detect`
+| Report only. No repository content is modified.
+
+| 2
+| `propose`
+| Open a pull request containing the validated candidate.
+
+| 3
+| `auto-merge`
+| Merge deterministic low-risk changes when every gate is green.
+
+| 4
+| `release`
+| Publish a versioned artifact after a successful merge and evaluation.
+
+| 5
+| `registry`
+| Propagate artifact and trust metadata to a registry.
+|===
+
+== Risk Classes
+
+Each source declares a risk class. The effective automated authority for a
+candidate is the minimum of the policy level and the level permitted by the risk
+class.
+
+[cols="1,2",options="header"]
+|===
+| Risk class
+| Maximum permitted level
+
+| `low`
+| `registry`
+
+| `medium`
+| `propose`
+
+| `high`
+| `detect`
+|===
+
+A `high` risk candidate MUST be quarantined rather than merged when no human
+reviewer is available. The uncertainty MUST be recorded, not suppressed.
+
+A candidate whose risk class cannot be determined MUST be treated as `high`.
+
+== Fail-Closed Behaviour
+
+On any gate failure, transport failure, timeout, limit breach or unexpected
+error, the run MUST:
+
+. keep the last valid version active
+. publish no artifact
+. move the candidate into `automation/quarantine/<candidate-id>/`
+. write an audit record describing the failure
+. create the notification declared by the policy
+. schedule the next attempt according to the retry policy
+
+A failure MUST NOT delete, truncate or overwrite existing knowledge content.
+
+== Automation State
+
+`automation/state.json` records what the automation knows about itself. It is
+machine-written and MUST NOT be edited to make a gate pass.
+
+[source,json]
+----
+{
+  "state_version": "0.1.0",
+  "pack_id": "aladdin-kb-example",
+  "last_valid_version": "0.1.0",
+  "last_run": {
+    "run_id": "0000000000",
+    "started_at": "2026-07-27T00:00:00Z",
+    "finished_at": "2026-07-27T00:03:12Z",
+    "trigger": "schedule",
+    "outcome": "no-change"
+  },
+  "sources": [
+    {
+      "source_id": "source:example.official-documentation",
+      "last_checked_at": "2026-07-27T00:00:00Z",
+      "last_change_at": "2026-06-30T00:00:00Z",
+      "content_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "consecutive_failures": 0
+    }
+  ],
+  "quarantine": [],
+  "counters": {
+    "runs": 1,
+    "candidates": 0,
+    "releases": 0,
+    "failures": 0
+  }
+}
+----
+
+== Automation Health and Heartbeat
+
+Scheduled workflows are disabled after prolonged repository inactivity. A
+conformant repository MUST implement a heartbeat.
+
+`automation/health.json` records the observable health of the automation:
+
+* the timestamp of the last successful validation run
+* the timestamp of the last successful update run
+* the timestamp of the last published release
+* the age of the newest release
+* whether any source has exceeded its failure threshold
+* whether the scheduled workflow is at risk of deactivation
+
+The heartbeat workflow MUST:
+
+* run on a schedule and on `workflow_dispatch`
+* update only automation metadata
+* mark its commits clearly as automation metadata updates
+* create a notification when an expected update did not arrive
+
+The heartbeat MUST NOT modify knowledge content, change versions or create
+releases. A heartbeat is risk mitigation, not a guarantee that a hosted CI
+platform will keep running.
+
+== Audit Trail
+
+Every automated decision MUST append one record to
+`automation/audit/<year>-<month>.jsonl`.
+
+[source,json]
+----
+{
+  "audit_version": "0.1.0",
+  "recorded_at": "2026-07-27T00:03:12Z",
+  "run_id": "0000000000",
+  "trigger": "schedule",
+  "phase": "gate",
+  "subject": "candidate:2026-07-27T00-00-00Z.001",
+  "decision": "rejected",
+  "reason": "reference validation failed",
+  "policy_version": "0.1.0",
+  "tool": {"name": "validate_pack.py", "version": "0.1.0"},
+  "inputs": ["sha256:0000000000000000000000000000000000000000000000000000000000000000"]
+}
+----
+
+Audit records are append-only. Correcting a mistake means appending a new
+record, never rewriting an old one.
+
+== Language Model Use
+
+A language model MAY assist with classification, summarization, proposing
+structured claims, detecting possible contradictions, translation and semantic
+comparison.
+
+Language-model output is an untrusted candidate. A model MUST NOT, on its own,
+assign a truth status, raise a confidence value, invent a source, invent
+evidence, grant a license clearance, approve a security-relevant change,
+overwrite an existing primary source or publish an unreviewed claim.
+
+Every model-assisted transformation MUST record model identity, model version,
+prompt or transformation version, creation time, input hashes, output hash and
+review status.
+
+No required part of the pipeline may depend on one vendor or one model.
+
+== Versioning
+
+Version selection MUST be deterministic and testable.
+
+[cols="1,3",options="header"]
+|===
+| Increment
+| Trigger
+
+| Patch
+| Updated provenance, updated verification time, a correction without meaning
+  change, a metadata correction.
+
+| Minor
+| New claims, new entities, new sources, additional evidence, other
+  backward-compatible content.
+
+| Major
+| Incompatible structure, changed semantics of existing identifiers, removal of
+  required content, incompatible migration.
+|===
+
+When several changes apply, the highest increment wins. A version decision MUST
+NOT rest on a free-form language-model judgement.
+
+== Release Artifacts
+
+A release MUST include or reference:
+
+* the manifest
+* the canonical data
+* provenance metadata
+* checksums for every file
+* the build log
+* the source commit
+* the source content hashes
+* the validator version
+* the adapter versions
+* the evaluation report
+* a build attestation
+* optionally an SBOM
+
+A release MUST NOT be created unless every schema is valid, every reference
+resolves, every security check passed, every required evaluation passed and no
+recall or quarantine rule is violated.
+
+Published artifacts are immutable. A content change requires a new version.
+
+== Rollback and Recall
+
+A conformant repository MUST be able to:
+
+. determine the last valid version
+. discard a candidate without side effects
+. reactivate a previous artifact
+. mark a faulty release as `recalled`
+. inform the registry about the recall
+. document the affected claims and sources
+. preserve the full audit trail
+
+A recall MUST NOT delete history.
+
+== Workflow Contracts
+
+=== Common Requirements
+
+Every workflow MUST declare explicit minimal permissions. Write permissions are
+granted only in the jobs that need them.
+
+Update and release workflows MUST use a concurrency group so that two runs
+cannot publish the same version. Re-running the same input MUST produce the same
+normalized result as far as technically possible.
+
+Scheduled workflows SHOULD NOT be scheduled at minute `0`, to avoid the
+platform-wide congestion window. No workflow may assume real-time execution.
+
+=== validate.yml
+
+Trigger: `push`, `pull_request`.
+Permissions: `contents: read`.
+Effect: schema validation, reference validation, tests. No writes.
+
+=== update-knowledge.yml
+
+Trigger: `schedule`, `workflow_dispatch`, `repository_dispatch`.
+Permissions: `contents: read` by default; `contents: write` and
+`pull-requests: write` only in the job that opens the pull request.
+Effect: retrieval, change detection, candidate generation, gates, and either a
+pull request or a quarantine entry.
+
+=== release-pack.yml
+
+Trigger: `workflow_dispatch`, `repository_dispatch`, or a merge that the policy
+declares as release-triggering.
+Permissions: `contents: write`, `attestations: write`, `id-token: write` where
+attestation requires it.
+Effect: version computation, artifact build, checksums, attestation, release
+publication, state update.
+
+=== automation-health.yml
+
+Trigger: `schedule`, `workflow_dispatch`.
+Permissions: `contents: write`, `issues: write`.
+Effect: heartbeat, health report, inactivity detection, failure issues.
+
+=== manual-recovery.yml
+
+Trigger: `workflow_dispatch` only.
+Permissions: declared per input.
+Effect: operator-driven recovery: rebuild state, re-run gates, reactivate the
+last valid artifact, clear or re-inspect quarantine.
+
+=== Workflow Chain Continuity
+
+Commits created with the default `GITHUB_TOKEN` do not trigger further
+workflows. A chain MUST therefore be built as one continuous workflow, a
+reusable workflow call, an explicit `workflow_dispatch`, an explicit
+`repository_dispatch`, or a GitHub App authenticated follow-up.
+
+A design that assumes a bot commit will start the next workflow is not
+conformant.
+
+== Authentication
+
+Preferred order:
+
+. the repository-scoped `GITHUB_TOKEN` when sufficient
+. an organization-owned GitHub App for cross-repository actions
+. OpenID Connect for supported external infrastructure
+. no personal access token as a permanent foundation
+
+A personal access token belonging to one individual MUST NOT be the permanent
+basis of a repository's automation.
+
+== Resource and Cost Limits
+
+Every repository MUST declare limits for run time, API calls, download size,
+file count, artifact size, retry count, language-model cost, parallel jobs and
+memory use. Exceeding a limit is a gate failure, not a warning.
+
+== Licensing Preconditions
+
+Automatic retrieval does not imply permitted reuse. Before a source is
+activated, the repository MUST document origin, license, terms of use, permitted
+reuse, permitted storage, permitted transformation, permitted excerpts, required
+attribution and any deletion or recall obligation.
+
+When licensing is unclear:
+
+[source,text]
+----
+Do not publish automatically.
+----
+
+== Conformance
+
+A repository is conformant with this specification when:
+
+. `automation/update-policy.yml` exists and validates against its schema
+. every declared adapter satisfies the adapter contract
+. every gate declared as `required` runs and can fail the pipeline
+. the declared automation level does not exceed the enforced gates
+. failures keep the last valid version active
+. every automated decision produces an audit record
+. no automation depends on a personal access token
+. the heartbeat runs and reports
+
+== Open Items
+
+The following are deliberately unresolved in this draft:
+
+* the normative registry protocol for level 5 propagation
+* the attestation format beyond the GitHub-native build attestation
+* the evaluation suite format and its thresholds
+* the normative schema for `state.json`, `health.json` and audit records
+* the reusable-workflow layout of a future central automation repository
+* cross-repository quarantine visibility
+
+These will be added in later drafts of the automation specification series.
