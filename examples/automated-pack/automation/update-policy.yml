@@ -1,0 +1,80 @@
+policy_version: "0.1.0"
+
+pack:
+  id: aladdin-kb-automated-example
+
+automation:
+  enabled: true
+  level: propose
+  cadence: weekly
+  failure_mode: keep-last-valid
+  update_mode: pull-request
+  release_mode: manual
+  retry:
+    max_attempts: 3
+    backoff_seconds: 3600
+    failure_threshold: 3
+  quarantine:
+    retain_days: 90
+    max_entries: 100
+    block_source_after_entries: 5
+
+limits:
+  max_run_minutes: 15
+  max_sources_per_run: 10
+  max_download_bytes: 1000000
+  max_total_download_bytes: 10000000
+  max_files: 200
+  max_artifact_bytes: 10000000
+  max_retries: 3
+  max_api_calls: 100
+  max_parallel_jobs: 1
+  max_language_model_cost_usd: 0
+
+gates:
+  schema_validation: required
+  reference_validation: required
+  security_scan: required
+  license_check: required
+  evaluation_suite: required
+
+sources:
+  - id: source:example.runtime.release-notes
+    adapter: static-file
+    path: examples/automated-pack/upstream/release-notes.json
+    risk_class: low
+    automation_level: propose
+    trust:
+      level: primary
+    license:
+      policy: documented
+      expression: CC-BY-4.0
+      attribution_required: true
+      excerpts_allowed: true
+      redistribution_allowed: true
+    change_detection:
+      method: content-hash
+    freshness:
+      max_age_days: 180
+      recheck_after_days: 7
+    limits:
+      max_download_bytes: 1000000
+      timeout_seconds: 30
+      max_redirects: 0
+
+release:
+  versioning: deterministic
+  require_clean_evaluation: true
+  attestation: required
+  sbom: optional
+
+notifications:
+  on_failure: issue
+  on_quarantine: issue
+  on_release: workflow-summary
+  on_stale_automation: issue
+
+heartbeat:
+  enabled: true
+  cadence: monthly
+  stale_after_days: 45

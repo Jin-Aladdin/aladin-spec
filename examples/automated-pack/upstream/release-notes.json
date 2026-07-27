@@ -1,0 +1,10 @@
+{
+  "product": "Example Runtime",
+  "latest_release": {
+    "version": "2.4.0",
+    "released_at": "2026-06-30",
+    "notes": "Adds deterministic build output and pins the default TLS profile."
+  },
+  "documentation_url": "https://example.org/runtime/2.4/release-notes",
+  "license": "CC-BY-4.0"
+}

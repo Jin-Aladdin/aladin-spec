@@ -1,0 +1,28 @@
+{
+  "state_version": "0.1.0",
+  "pack_id": "aladdin-kb-automated-example",
+  "last_valid_version": "0.1.0",
+  "last_run": {
+    "run_id": "0000000000",
+    "started_at": "2026-07-27T00:00:00Z",
+    "finished_at": "2026-07-27T00:00:00Z",
+    "trigger": "manual",
+    "outcome": "no-change"
+  },
+  "sources": [
+    {
+      "source_id": "source:example.runtime.release-notes",
+      "last_checked_at": "2026-07-27T00:00:00Z",
+      "last_change_at": "2026-07-27T00:00:00Z",
+      "content_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "consecutive_failures": 0
+    }
+  ],
+  "quarantine": [],
+  "counters": {
+    "runs": 0,
+    "candidates": 0,
+    "releases": 0,
+    "failures": 0
+  }
+}

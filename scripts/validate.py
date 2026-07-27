@@ -39,6 +39,10 @@ REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 MANIFEST_FILENAME = "aladdin-pack.yml"
 MANIFEST_SCHEMA = "manifest.schema.json"
 
+AUTOMATION_DIRECTORY = "automation"
+POLICY_FILENAME = "update-policy.yml"
+POLICY_SCHEMA = "update-policy.schema.json"
+
 #: Canonical object identifier prefix per manifest content type.
 #:
 #: The key is the ``content.content_types`` value used in a manifest, which
@@ -218,20 +222,20 @@ def iter_references(record: Any) -> Iterator[str]:
 # --------------------------------------------------------------------------
 
 
-def check_relative_path(value: str, pack_dir: Path) -> str | None:
-    """Return an error message when ``value`` is not a safe in-pack path."""
+def check_relative_path(value: str, pack_dir: Path, boundary: str = "pack") -> str | None:
+    """Return an error message when ``value`` is not a safe contained path."""
     if not value:
         return "path must not be empty"
     if "\\" in value:
         return "path must use forward slashes"
     candidate = Path(value)
     if candidate.is_absolute() or value.startswith("/"):
-        return "path must be relative to the pack directory"
+        return f"path must be relative to the {boundary} directory"
     if ".." in candidate.parts:
-        return "path must not traverse outside the pack directory"
+        return f"path must not traverse outside the {boundary} directory"
     resolved = (pack_dir / candidate).resolve()
     if not resolved.is_relative_to(pack_dir.resolve()):
-        return "path escapes the pack directory"
+        return f"path escapes the {boundary} directory"
     if not resolved.exists():
         return "declared path does not exist"
     if not resolved.is_file():
@@ -244,25 +248,96 @@ def check_relative_path(value: str, pack_dir: Path) -> str | None:
 # --------------------------------------------------------------------------
 
 
+def load_yaml_mapping(path: Path, root: Path) -> tuple[dict | None, list[Finding]]:
+    """Parse a YAML file in safe mode and require a top-level mapping."""
+    rel = _relative(path, root)
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        mark = getattr(exc, "problem_mark", None)
+        line = mark.line + 1 if mark is not None else None
+        problem = getattr(exc, "problem", None) or str(exc).splitlines()[0]
+        return None, [Finding(rel, f"invalid YAML: {problem}", line=line)]
+    if not isinstance(data, dict):
+        return None, [Finding(rel, "file must contain a YAML mapping")]
+    return data, []
+
+
+def validate_policy(
+    policy_path: Path,
+    schemas: dict[str, dict],
+    root: Path,
+    manifest: dict | None = None,
+) -> list[Finding]:
+    """Validate an automation update policy.
+
+    Beyond the schema, this checks the two invariants a schema cannot express:
+    the policy must belong to the pack it sits in, and a static-file source
+    must point at a file that exists inside the repository.
+    """
+    rel = _relative(policy_path, root)
+    policy, findings = load_yaml_mapping(policy_path, root)
+    if policy is None:
+        return findings
+
+    schema = schemas.get(POLICY_SCHEMA)
+    if schema is None:
+        findings.append(Finding(rel, f"cannot validate: {POLICY_SCHEMA} was not loaded"))
+    else:
+        findings.extend(_instance_findings(schema, policy, rel, None, None))
+
+    policy_pack_id = (policy.get("pack") or {}).get("id") if isinstance(policy.get("pack"), dict) else None
+    if manifest is not None and isinstance(manifest.get("pack"), dict):
+        manifest_pack_id = manifest["pack"].get("id")
+        if policy_pack_id and manifest_pack_id and policy_pack_id != manifest_pack_id:
+            findings.append(
+                Finding(
+                    rel,
+                    f"policy targets pack {policy_pack_id!r} but the manifest declares "
+                    f"{manifest_pack_id!r}",
+                )
+            )
+
+    sources = policy.get("sources") if isinstance(policy.get("sources"), list) else []
+    seen_ids: dict[str, int] = {}
+    for index, source in enumerate(sources):
+        if not isinstance(source, dict):
+            continue
+        source_id = source.get("id")
+        if isinstance(source_id, str):
+            if source_id in seen_ids:
+                findings.append(
+                    Finding(
+                        rel,
+                        f"duplicate source policy for {source_id}, first declared at "
+                        f"sources[{seen_ids[source_id]}]",
+                    )
+                )
+            else:
+                seen_ids[source_id] = index
+
+        path_value = source.get("path")
+        if isinstance(path_value, str):
+            problem = check_relative_path(path_value, root, boundary="repository")
+            if problem:
+                findings.append(
+                    Finding(rel, f"source {source_id} path {path_value!r}: {problem}")
+                )
+
+    return findings
+
+
 def validate_pack(pack_dir: Path, schemas: dict[str, dict], root: Path) -> list[Finding]:
     """Validate one Knowledge Pack directory."""
-    findings: list[Finding] = []
     manifest_path = pack_dir / MANIFEST_FILENAME
     manifest_rel = _relative(manifest_path, root)
 
     if not manifest_path.is_file():
         return [Finding(_relative(pack_dir, root), f"missing {MANIFEST_FILENAME}")]
 
-    try:
-        manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
-    except yaml.YAMLError as exc:
-        mark = getattr(exc, "problem_mark", None)
-        line = mark.line + 1 if mark is not None else None
-        problem = getattr(exc, "problem", None) or str(exc).splitlines()[0]
-        return [Finding(manifest_rel, f"invalid YAML: {problem}", line=line)]
-
-    if not isinstance(manifest, dict):
-        return [Finding(manifest_rel, "manifest must be a YAML mapping")]
+    manifest, findings = load_yaml_mapping(manifest_path, root)
+    if manifest is None:
+        return findings
 
     manifest_schema = schemas.get(MANIFEST_SCHEMA)
     if manifest_schema is None:
@@ -340,6 +415,11 @@ def validate_pack(pack_dir: Path, schemas: dict[str, dict], root: Path) -> list[
             )
 
     findings.extend(_check_references(records, pack_dir, root))
+
+    policy_path = pack_dir / AUTOMATION_DIRECTORY / POLICY_FILENAME
+    if policy_path.is_file():
+        findings.extend(validate_policy(policy_path, schemas, root, manifest=manifest))
+
     return findings
 
 

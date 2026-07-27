@@ -1,0 +1,1077 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jin-Aladdin/aladdin-spec/blob/main/schemas/update-policy.schema.json",
+  "title": "Aladdin Knowledge Pack Update Policy",
+  "description": "Normative schema for the automation policy of an Aladdin Knowledge Pack repository. The policy declares which sources may be retrieved, by which adapter, under which limits, with which trust and licensing status, and how far automation is allowed to act on the result. A repository without a valid update policy has no automated maintenance.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "policy_version",
+    "pack",
+    "automation",
+    "limits",
+    "gates",
+    "sources",
+    "release"
+  ],
+  "properties": {
+    "policy_version": {
+      "type": "string",
+      "const": "0.1.0",
+      "description": "Version of this policy schema."
+    },
+    "pack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "minLength": 3,
+          "maxLength": 100,
+          "description": "Identifier of the pack this policy applies to. Must match pack.id in the manifest."
+        }
+      }
+    },
+    "automation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "level",
+        "cadence",
+        "failure_mode",
+        "update_mode",
+        "release_mode"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "When false, no automated retrieval, candidate generation or release may run."
+        },
+        "level": {
+          "$ref": "#/$defs/automationLevel",
+          "description": "Highest automation level this repository may reach. The effective level for a candidate is the lower of this value and the ceiling imposed by the source risk class."
+        },
+        "cadence": {
+          "type": "string",
+          "enum": [
+            "hourly",
+            "daily",
+            "weekly",
+            "monthly",
+            "quarterly",
+            "manual"
+          ]
+        },
+        "failure_mode": {
+          "type": "string",
+          "const": "keep-last-valid",
+          "description": "The only conformant failure mode. A failed update keeps the last valid version active."
+        },
+        "update_mode": {
+          "type": "string",
+          "enum": [
+            "report-only",
+            "pull-request",
+            "direct-commit"
+          ]
+        },
+        "release_mode": {
+          "type": "string",
+          "enum": [
+            "never",
+            "manual",
+            "after-validation"
+          ]
+        },
+        "retry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_attempts",
+            "backoff_seconds"
+          ],
+          "properties": {
+            "max_attempts": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "backoff_seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 86400
+            },
+            "failure_threshold": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "description": "Consecutive failures after which the source is reported as unhealthy."
+            }
+          }
+        },
+        "quarantine": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "retain_days": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3650
+            },
+            "max_entries": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            },
+            "block_source_after_entries": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "description": "Number of quarantined candidates from one source after which that source is disabled until an operator intervenes."
+            }
+          }
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_run_minutes",
+        "max_download_bytes",
+        "max_total_download_bytes",
+        "max_files",
+        "max_artifact_bytes",
+        "max_retries"
+      ],
+      "description": "Repository-wide resource ceilings. Exceeding a limit is a gate failure, not a warning.",
+      "properties": {
+        "max_run_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 360
+        },
+        "max_sources_per_run": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "max_download_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1073741824
+        },
+        "max_total_download_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10737418240
+        },
+        "max_files": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "max_artifact_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10737418240
+        },
+        "max_retries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "max_api_calls": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "max_parallel_jobs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "max_memory_mb": {
+          "type": "integer",
+          "minimum": 64,
+          "maximum": 131072
+        },
+        "max_language_model_cost_usd": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000,
+          "description": "Upper bound for model spend per run. Zero means no model use is budgeted."
+        }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_validation",
+        "reference_validation",
+        "security_scan",
+        "license_check",
+        "evaluation_suite"
+      ],
+      "description": "Gate configuration. A required gate must be able to fail the pipeline.",
+      "properties": {
+        "schema_validation": {
+          "$ref": "#/$defs/gateMode"
+        },
+        "reference_validation": {
+          "$ref": "#/$defs/gateMode"
+        },
+        "security_scan": {
+          "$ref": "#/$defs/gateMode"
+        },
+        "license_check": {
+          "$ref": "#/$defs/gateMode"
+        },
+        "evaluation_suite": {
+          "$ref": "#/$defs/gateMode"
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 500,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/sourcePolicy"
+      }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "versioning",
+        "require_clean_evaluation",
+        "attestation"
+      ],
+      "properties": {
+        "versioning": {
+          "type": "string",
+          "const": "deterministic",
+          "description": "Version selection must follow the deterministic rules of the automation specification. Free-form judgement is not a conformant versioning strategy."
+        },
+        "require_clean_evaluation": {
+          "type": "boolean"
+        },
+        "attestation": {
+          "type": "string",
+          "enum": [
+            "required",
+            "optional",
+            "disabled"
+          ]
+        },
+        "sbom": {
+          "type": "string",
+          "enum": [
+            "required",
+            "optional",
+            "disabled"
+          ]
+        },
+        "registry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "propagate"
+          ],
+          "properties": {
+            "propagate": {
+              "type": "boolean"
+            },
+            "endpoint": {
+              "type": "string",
+              "format": "uri",
+              "maxLength": 2048
+            }
+          }
+        }
+      }
+    },
+    "notifications": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "on_failure": {
+          "$ref": "#/$defs/notificationChannel"
+        },
+        "on_quarantine": {
+          "$ref": "#/$defs/notificationChannel"
+        },
+        "on_release": {
+          "$ref": "#/$defs/notificationChannel"
+        },
+        "on_stale_automation": {
+          "$ref": "#/$defs/notificationChannel"
+        }
+      }
+    },
+    "heartbeat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "cadence": {
+          "type": "string",
+          "enum": [
+            "weekly",
+            "monthly"
+          ]
+        },
+        "stale_after_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 365,
+          "description": "Age after which the automation reports itself as stale."
+        }
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Namespaced extension data using reverse-DNS keys.",
+      "propertyNames": {
+        "pattern": "^[a-z0-9]+(?:\\.[a-z0-9-]+)+$"
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "description": "Any level above detect requires every gate to be enforced.",
+      "if": {
+        "properties": {
+          "automation": {
+            "properties": {
+              "enabled": {
+                "const": true
+              },
+              "level": {
+                "enum": [
+                  "propose",
+                  "auto-merge",
+                  "release",
+                  "registry"
+                ]
+              }
+            },
+            "required": [
+              "enabled",
+              "level"
+            ]
+          }
+        },
+        "required": [
+          "automation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "gates": {
+            "properties": {
+              "schema_validation": {
+                "const": "required"
+              },
+              "reference_validation": {
+                "const": "required"
+              },
+              "security_scan": {
+                "const": "required"
+              },
+              "license_check": {
+                "const": "required"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Automated release requires the evaluation suite to be enforced.",
+      "if": {
+        "properties": {
+          "automation": {
+            "properties": {
+              "enabled": {
+                "const": true
+              },
+              "level": {
+                "enum": [
+                  "release",
+                  "registry"
+                ]
+              }
+            },
+            "required": [
+              "enabled",
+              "level"
+            ]
+          }
+        },
+        "required": [
+          "automation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "gates": {
+            "properties": {
+              "evaluation_suite": {
+                "const": "required"
+              }
+            }
+          },
+          "release": {
+            "properties": {
+              "require_clean_evaluation": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Registry propagation must actually be enabled at level registry.",
+      "if": {
+        "properties": {
+          "automation": {
+            "properties": {
+              "level": {
+                "const": "registry"
+              }
+            },
+            "required": [
+              "level"
+            ]
+          }
+        },
+        "required": [
+          "automation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "release": {
+            "required": [
+              "registry"
+            ],
+            "properties": {
+              "registry": {
+                "properties": {
+                  "propagate": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "Publishing releases requires a release mode that permits it.",
+      "if": {
+        "properties": {
+          "automation": {
+            "properties": {
+              "level": {
+                "enum": [
+                  "release",
+                  "registry"
+                ]
+              }
+            },
+            "required": [
+              "level"
+            ]
+          }
+        },
+        "required": [
+          "automation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "automation": {
+            "properties": {
+              "release_mode": {
+                "enum": [
+                  "manual",
+                  "after-validation"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "automationLevel": {
+      "type": "string",
+      "enum": [
+        "detect",
+        "propose",
+        "auto-merge",
+        "release",
+        "registry"
+      ]
+    },
+    "gateMode": {
+      "type": "string",
+      "enum": [
+        "required",
+        "advisory",
+        "disabled"
+      ]
+    },
+    "notificationChannel": {
+      "type": "string",
+      "enum": [
+        "none",
+        "workflow-summary",
+        "issue",
+        "repository-dispatch"
+      ]
+    },
+    "sourcePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "adapter",
+        "risk_class",
+        "trust",
+        "license",
+        "change_detection",
+        "limits"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^source:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+          "maxLength": 240,
+          "description": "Canonical identifier of the source record this policy entry governs."
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "adapter": {
+          "type": "string",
+          "enum": [
+            "static-file",
+            "git-repository",
+            "github-release",
+            "json-api",
+            "feed",
+            "html-documentation",
+            "pdf-document",
+            "structured-dataset",
+            "standards-document"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048,
+          "description": "Retrieval target for network adapters."
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$",
+          "description": "In-repository fixture path for the static-file adapter. Must stay inside the repository."
+        },
+        "repository": {
+          "type": "string",
+          "maxLength": 512,
+          "description": "Repository reference for the git-repository and github-release adapters."
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Pinned revision for the git-repository adapter."
+        },
+        "allowed_domains": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$",
+            "maxLength": 253
+          },
+          "uniqueItems": true,
+          "minItems": 1,
+          "maxItems": 50,
+          "description": "Network allowlist. Every request and every redirect target must match one of these domains."
+        },
+        "allowed_media_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+$",
+            "maxLength": 120
+          },
+          "uniqueItems": true,
+          "minItems": 1,
+          "maxItems": 20
+        },
+        "risk_class": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "description": "Risk class of changes originating from this source. The risk class caps the automation level regardless of the repository level."
+        },
+        "automation_level": {
+          "$ref": "#/$defs/automationLevel",
+          "description": "Explicit automation ceiling for this source. Required for medium and high risk classes so that the ceiling is stated rather than inferred."
+        },
+        "trust": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "level"
+          ],
+          "properties": {
+            "level": {
+              "type": "string",
+              "enum": [
+                "primary",
+                "secondary",
+                "tertiary",
+                "user-provided",
+                "generated",
+                "unknown"
+              ]
+            },
+            "notes": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          }
+        },
+        "license": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "policy"
+          ],
+          "properties": {
+            "policy": {
+              "type": "string",
+              "enum": [
+                "documented",
+                "public-domain",
+                "proprietary",
+                "unclear"
+              ],
+              "description": "Licensing status of the retrieved material. Unclear licensing forbids automatic publication."
+            },
+            "expression": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 200,
+              "description": "SPDX identifier or expression."
+            },
+            "url": {
+              "type": "string",
+              "format": "uri",
+              "maxLength": 2048
+            },
+            "attribution_required": {
+              "type": "boolean"
+            },
+            "excerpts_allowed": {
+              "type": "boolean"
+            },
+            "redistribution_allowed": {
+              "type": "boolean"
+            },
+            "notes": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          }
+        },
+        "change_detection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method"
+          ],
+          "properties": {
+            "method": {
+              "type": "string",
+              "enum": [
+                "content-hash",
+                "etag",
+                "last-modified",
+                "version-field",
+                "structural-diff"
+              ]
+            },
+            "field": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300,
+              "description": "Structured field to compare for the version-field method."
+            },
+            "confirm_with_hash": {
+              "type": "boolean",
+              "description": "Advisory methods must be confirmed by a content hash comparison before a candidate is generated."
+            }
+          }
+        },
+        "freshness": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max_age_days": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3650,
+              "description": "Age after which the recorded verification for this source is considered stale."
+            },
+            "recheck_after_days": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3650
+            }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_download_bytes",
+            "timeout_seconds"
+          ],
+          "properties": {
+            "max_download_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1073741824
+            },
+            "timeout_seconds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 600
+            },
+            "max_redirects": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "rate_limit_per_hour": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            }
+          }
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "extensions": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z0-9]+(?:\\.[a-z0-9-]+)+$"
+          },
+          "additionalProperties": true
+        }
+      },
+      "allOf": [
+        {
+          "description": "Network adapters require a URL, a domain allowlist and accepted media types.",
+          "if": {
+            "properties": {
+              "adapter": {
+                "enum": [
+                  "json-api",
+                  "feed",
+                  "html-documentation",
+                  "pdf-document",
+                  "structured-dataset",
+                  "standards-document"
+                ]
+              }
+            },
+            "required": [
+              "adapter"
+            ]
+          },
+          "then": {
+            "required": [
+              "url",
+              "allowed_domains",
+              "allowed_media_types"
+            ]
+          }
+        },
+        {
+          "description": "The static-file adapter reads either an in-repository path or an allowlisted URL.",
+          "if": {
+            "properties": {
+              "adapter": {
+                "const": "static-file"
+              }
+            },
+            "required": [
+              "adapter"
+            ]
+          },
+          "then": {
+            "anyOf": [
+              {
+                "required": [
+                  "path"
+                ]
+              },
+              {
+                "required": [
+                  "url",
+                  "allowed_domains"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "description": "Git retrieval must be pinned to a revision.",
+          "if": {
+            "properties": {
+              "adapter": {
+                "const": "git-repository"
+              }
+            },
+            "required": [
+              "adapter"
+            ]
+          },
+          "then": {
+            "required": [
+              "repository",
+              "revision",
+              "allowed_domains"
+            ]
+          }
+        },
+        {
+          "description": "Release retrieval must name the repository it observes.",
+          "if": {
+            "properties": {
+              "adapter": {
+                "const": "github-release"
+              }
+            },
+            "required": [
+              "adapter"
+            ]
+          },
+          "then": {
+            "required": [
+              "repository",
+              "allowed_domains"
+            ]
+          }
+        },
+        {
+          "description": "Medium risk sources may not exceed the propose level.",
+          "if": {
+            "properties": {
+              "risk_class": {
+                "const": "medium"
+              }
+            },
+            "required": [
+              "risk_class"
+            ]
+          },
+          "then": {
+            "required": [
+              "automation_level"
+            ],
+            "properties": {
+              "automation_level": {
+                "enum": [
+                  "detect",
+                  "propose"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "description": "High risk sources may only detect. They are never merged or published automatically.",
+          "if": {
+            "properties": {
+              "risk_class": {
+                "const": "high"
+              }
+            },
+            "required": [
+              "risk_class"
+            ]
+          },
+          "then": {
+            "required": [
+              "automation_level"
+            ],
+            "properties": {
+              "automation_level": {
+                "const": "detect"
+              }
+            }
+          }
+        },
+        {
+          "description": "Unclear licensing forbids automatic publication.",
+          "if": {
+            "properties": {
+              "license": {
+                "properties": {
+                  "policy": {
+                    "const": "unclear"
+                  }
+                },
+                "required": [
+                  "policy"
+                ]
+              }
+            },
+            "required": [
+              "license"
+            ]
+          },
+          "then": {
+            "required": [
+              "automation_level"
+            ],
+            "properties": {
+              "automation_level": {
+                "const": "detect"
+              }
+            }
+          }
+        },
+        {
+          "description": "Documented licensing must name the license.",
+          "if": {
+            "properties": {
+              "license": {
+                "properties": {
+                  "policy": {
+                    "const": "documented"
+                  }
+                },
+                "required": [
+                  "policy"
+                ]
+              }
+            },
+            "required": [
+              "license"
+            ]
+          },
+          "then": {
+            "properties": {
+              "license": {
+                "required": [
+                  "expression"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "description": "Advisory change detection must be confirmed by a hash comparison.",
+          "if": {
+            "properties": {
+              "change_detection": {
+                "properties": {
+                  "method": {
+                    "enum": [
+                      "etag",
+                      "last-modified"
+                    ]
+                  }
+                },
+                "required": [
+                  "method"
+                ]
+              }
+            },
+            "required": [
+              "change_detection"
+            ]
+          },
+          "then": {
+            "properties": {
+              "change_detection": {
+                "required": [
+                  "confirm_with_hash"
+                ],
+                "properties": {
+                  "confirm_with_hash": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "description": "Field comparison must name the field it compares.",
+          "if": {
+            "properties": {
+              "change_detection": {
+                "properties": {
+                  "method": {
+                    "const": "version-field"
+                  }
+                },
+                "required": [
+                  "method"
+                ]
+              }
+            },
+            "required": [
+              "change_detection"
+            ]
+          },
+          "then": {
+            "properties": {
+              "change_detection": {
+                "required": [
+                  "field"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

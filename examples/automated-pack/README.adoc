@@ -1,0 +1,101 @@
+= Automated Aladdin Knowledge Pack
+Jin-Aladdin
+:toc:
+:toc-title: Contents
+:sectanchors:
+:sectlinks:
+
+This directory demonstrates the automation layer defined by ADR-0005 and
+`specifications/automation-v1.adoc`.
+
+The minimal pack in `examples/minimal-pack` shows the data format. This pack
+shows how a pack keeps itself current.
+
+== Structure
+
+[source,text]
+----
+automated-pack/
+├── README.adoc
+├── aladdin-pack.yml
+├── automation/
+│   ├── update-policy.yml
+│   └── state.json
+├── claims/
+│   └── claims.jsonl
+├── sources/
+│   └── sources.jsonl
+├── evidence/
+│   └── evidence.jsonl
+└── upstream/
+    └── release-notes.json
+----
+
+== The upstream Directory
+
+`upstream/` is not pack content. It stands in for an external source so the
+example stays deterministic and offline: no network request, no live website, no
+moving target.
+
+It is not declared as a content type and not listed as an entry point, so it is
+never part of a published artifact. A real pack would point its source policy at
+a remote URL instead.
+
+== Update Policy
+
+`automation/update-policy.yml` declares what automation may do. It validates
+against `schemas/update-policy.schema.json`.
+
+The example declares:
+
+* automation enabled at level `propose`, checked weekly
+* failure mode `keep-last-valid`
+* updates arrive as pull requests, releases stay manual
+* repository-wide resource limits, including a zero budget for model use
+* all five gates as `required`
+* one source, retrieved by the `static-file` adapter from an in-repository path
+* risk class `low` with an explicit automation ceiling of `propose`
+* documented licensing with attribution required
+* change detection by content hash
+* retry, quarantine, notification and heartbeat rules
+
+=== Why the Ceiling Is Explicit
+
+The schema requires an explicit `automation_level` for every `medium` and `high`
+risk source, and for every source with unclear licensing. The ceiling is stated
+in the policy rather than inferred at run time, so a reader can see the limit
+without simulating the pipeline.
+
+A `high` risk source is capped at `detect` regardless of the repository level. A
+source with unclear licensing is capped the same way: retrieval is allowed,
+automatic publication is not.
+
+== Automation State
+
+`automation/state.json` is machine-written. It records the last valid version,
+the last run and its outcome, the last known content hash per source, the
+consecutive failure count and the quarantine list.
+
+It is an audit input, not a place to edit values until a gate passes.
+
+== What This Example Does Not Do
+
+* It does not fetch anything over the network.
+* It does not publish a release.
+* It does not merge anything automatically.
+* It does not execute any code from the source it reads.
+
+The deterministic update engine that consumes this policy is documented in
+`specifications/automation-v1.adoc`.
+
+== Validation
+
+[source,text]
+----
+python scripts/validate.py --pack examples/automated-pack
+----
+
+The validator checks the manifest, every record, every cross reference and the
+update policy, including the two rules a schema cannot express: the policy must
+target the pack it sits in, and a `static-file` path must resolve to a file
+inside the repository.
