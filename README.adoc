@@ -12,36 +12,42 @@ Jin-Aladdin
 :experimental:
 :hide-uri-scheme:
 
-image:https://img.shields.io/badge/status-pre--alpha-f59e0b?style=for-the-badge[Project status: Pre-Alpha]
-image:https://img.shields.io/badge/specification-0.1.0--draft-7c3aed?style=for-the-badge[Specification version: 0.1.0 Draft]
+[.text-center]
+image:https://img.shields.io/badge/STATUS-PRE--ALPHA-F59E0B?style=for-the-badge[Project status: Pre-Alpha]
+image:https://img.shields.io/badge/SPEC-0.1.0--DRAFT-7C3AED?style=for-the-badge[Specification version: 0.1.0 Draft]
 image:https://img.shields.io/github/license/Jin-Aladdin/aladin-spec?style=for-the-badge[License,link=https://github.com/Jin-Aladdin/aladin-spec/blob/main/LICENSE]
 image:https://img.shields.io/github/issues/Jin-Aladdin/aladin-spec?style=for-the-badge[Open issues,link=https://github.com/Jin-Aladdin/aladin-spec/issues]
 image:https://img.shields.io/github/stars/Jin-Aladdin/aladin-spec?style=for-the-badge[GitHub stars,link=https://github.com/Jin-Aladdin/aladin-spec/stargazers]
 image:https://img.shields.io/github/last-commit/Jin-Aladdin/aladin-spec?style=for-the-badge[Last commit]
-image:https://img.shields.io/badge/documentation-AsciiDoc-1f6f8b?style=for-the-badge[Documentation format: AsciiDoc]
+image:https://img.shields.io/badge/DOCS-ASCIIDOC-1F6F8B?style=for-the-badge[Documentation format: AsciiDoc]
 
+[.text-center]
 [.lead]
-An open specification for portable, verifiable and versioned knowledge packs for trusted AI systems.
+*Portable knowledge. Verifiable sources. Trusted intelligence.*
 
-Aladin defines a common format for packaging structured, source-backed and machine-readable knowledge.
+[.text-center]
+--
+Aladin defines an open format for packaging structured, source-backed and machine-readable knowledge.
 
-Knowledge Packs can be validated, versioned, distributed and consumed by AI assistants, local language models, retrieval systems, agents and knowledge platforms without requiring a separate permanent API server for every knowledge domain.
+Knowledge Packs can be validated, versioned, distributed and consumed by AI systems without requiring a permanent API server for every knowledge domain.
+--
 
 [IMPORTANT]
+====
+Aladin Spec is currently in *Pre-Alpha*.
 
-Aladin Spec is currently in Pre-Alpha.
-
-The architecture and data formats are still under active design. No stable "1.0.0" specification has been released.
+The architecture and data formats are under active design. No stable `1.0.0` specification has been released.
+====
 
 toc::[]
 
 == Vision
 
-Modern AI systems often depend on knowledge that is locked inside a specific application, database, cloud provider or model ecosystem.
+Modern AI systems often depend on knowledge locked inside a specific application, database, cloud provider or model ecosystem.
 
-Aladin aims to separate knowledge from the system that consumes it.
+Aladin separates knowledge from the system that consumes it.
 
-The specification defines portable Knowledge Packs that can be:
+The specification defines portable *Knowledge Packs* that can be:
 
 * inspected by humans
 * processed by machines
@@ -55,77 +61,51 @@ The specification defines portable Knowledge Packs that can be:
 
 The objective is not to create hundreds of permanently running knowledge APIs.
 
-Instead, each knowledge repository acts as a source project that produces a validated and optimized data artifact.
-
-A central gateway, indexer or AI platform can then load and serve many Knowledge Packs dynamically.
+Each knowledge repository is a source project that produces a validated and optimized data artifact. A central gateway, indexer or compatible AI platform can load and serve many Knowledge Packs dynamically.
 
 == What Is a Knowledge Pack?
 
-An Aladin Knowledge Pack is a versioned, machine-readable collection of structured knowledge and its supporting metadata.
+An Aladin Knowledge Pack is a versioned, machine-readable collection of structured knowledge and supporting metadata.
 
 A pack may contain:
 
 * claims and facts
-* source references
-* provenance records
+* source references and provenance
 * entities and relationships
-* categories and concepts
 * multilingual content
-* licensing information
-* usage restrictions
-* quality indicators
-* trust metadata
+* licensing and usage restrictions
+* quality and trust metadata
 * compatibility information
 * validation results
-* artifact checksums
-* build information
-* optional search indexes
-* optional embedding metadata
+* checksums and build provenance
+* optional search indexes and embedding metadata
 
-A Knowledge Pack is a data product, not a permanently running microservice.
+A Knowledge Pack is a *data product*, not a permanently running microservice.
 
 [source,text]
-
+----
 Knowledge Repository
-│
-│ Validate and build
-▼
+        │
+        │ Validate and build
+        ▼
 Versioned Knowledge Artifact
-│
-│ Publish
-▼
+        │
+        │ Publish
+        ▼
 Artifact Storage and Registry
-│
-│ Discover and load
-▼
+        │
+        │ Discover and load
+        ▼
 Global Metadata Index
-│
-│ Retrieve
-▼
-Re-Ranking and Context Building
-│
-│ Ground
-▼
+        │
+        │ Retrieve and re-rank
+        ▼
+Context Builder
+        │
+        │ Ground
+        ▼
 AI Model, Agent or Application
-
-== Why Aladin?
-
-Knowledge used by AI systems should be more than a collection of copied text fragments.
-
-It should be possible to answer questions such as:
-
-* Where did this information come from?
-* When was the source last checked?
-* Which license applies?
-* Is the content still current?
-* Is this a verified fact, an interpretation or an unresolved claim?
-* Does another trusted source contradict it?
-* Which version of the knowledge was used?
-* Can the artifact be reproduced?
-* Is the package compatible with the current platform?
-* Can a faulty package be recalled or rolled back?
-
-Aladin is intended to make these questions part of the data format itself.
+----
 
 == Core Principles
 
@@ -143,19 +123,15 @@ Every published Knowledge Pack must have an identifiable version and reproducibl
 
 === Declarative
 
-Knowledge Packs primarily contain structured data.
-
-They must not require their own permanently running application server.
+Knowledge Packs primarily contain structured data. They must not require their own permanently running application server.
 
 === Secure by Default
 
-A Knowledge Pack must not be able to execute arbitrary code inside the consuming AI system.
-
-Untrusted data must be treated as data, not as executable instructions.
+A Knowledge Pack must not execute arbitrary code inside the consuming AI system. Untrusted data must be treated as data, not as executable instructions.
 
 === Source-Aware
 
-Knowledge should preserve information about origin, retrieval time, authorship, licensing and transformation history.
+Knowledge should preserve its origin, retrieval time, authorship, licensing and transformation history.
 
 === Backward-Compatible
 
@@ -173,9 +149,7 @@ The base specification is public and may be implemented by independent tools, or
 
 Knowledge Packs must support deprecation, recall, rollback and replacement when information becomes invalid or legally unusable.
 
-== Proposed System Architecture
-
-The Aladin ecosystem is separated into multiple layers.
+== Proposed Architecture
 
 [cols="1,3",options="header"]
 |===
@@ -183,16 +157,16 @@ The Aladin ecosystem is separated into multiple layers.
 | Responsibility
 
 | Knowledge Repository
-| Stores source definitions, structured knowledge, schemas, tests and build configuration.
+| Stores structured knowledge, source definitions, tests and build configuration.
 
 | Validator
-| Checks structure, source metadata, licenses, compatibility and integrity.
+| Checks schemas, provenance, licenses, compatibility and integrity.
 
 | Artifact Builder
-| Produces optimized, immutable and versioned Knowledge Pack artifacts.
+| Produces optimized, immutable and versioned artifacts.
 
 | Artifact Storage
-| Stores released packages, checksums, signatures and historical versions.
+| Stores packages, checksums, signatures and historical versions.
 
 | Registry
 | Publishes discoverable metadata about available Knowledge Packs.
@@ -201,76 +175,48 @@ The Aladin ecosystem is separated into multiple layers.
 | Maps questions, concepts and entities to relevant packages and chunks.
 
 | Retriever
-| Retrieves candidate knowledge from the most relevant packages.
+| Retrieves candidates from the most relevant packages.
 
 | Re-Ranker
-| Scores candidate chunks by relevance, trust, freshness and source quality.
+| Scores candidates by relevance, trust, freshness and source quality.
 
 | Context Builder
-| Selects, deduplicates and organizes knowledge within a defined token budget.
+| Selects, deduplicates and organizes knowledge within a token budget.
 
 | AI Runtime
-| Uses the selected knowledge to ground an answer, workflow or agent decision.
+| Uses selected knowledge to ground an answer, workflow or agent decision.
 |===
 
 == Retrieval Pipeline
 
-A single user request may require knowledge from several independent packs.
-
-For example:
+A single request may require knowledge from several independent packs.
 
 [source,text]
-
+----
 How do I write a Bash script on Linux that starts
-a PostgreSQL database inside a Docker container?
+PostgreSQL inside a Docker container?
+----
 
 This request may involve:
 
-* "aladin-kb-bash"
-* "aladin-kb-linux"
-* "aladin-kb-docker"
-* "aladin-kb-postgresql"
+* `aladin-kb-bash`
+* `aladin-kb-linux`
+* `aladin-kb-docker`
+* `aladin-kb-postgresql`
 
 The runtime should not blindly query every available package.
 
-The proposed retrieval process is:
-
-. Analyze the user request.
+. Analyze the request.
 . Detect concepts, entities and task intent.
 . Search the global metadata index.
-. Select the most relevant Knowledge Packs.
+. Select relevant Knowledge Packs.
 . Retrieve candidate chunks.
 . Apply source, license and freshness filters.
 . Re-rank the candidates.
 . Remove duplicates and weak matches.
 . Detect relevant contradictions.
 . Build a token-budgeted context.
-. Send the grounded context to the selected AI model.
-
-[source,text]
-
-Query
-│
-▼
-Intent and Concept Detection
-│
-▼
-Global Metadata Index
-│
-▼
-Relevant Knowledge Packs
-│
-▼
-Hybrid Retrieval
-│
-▼
-Filtering and Re-Ranking
-│
-▼
-Context Builder
-│
-▼
-AI Runtime
+. Send grounded context to the selected AI model.
 
 == Initial Specification Scope
 
@@ -279,113 +225,22 @@ The first specification series is planned to define:
 . Knowledge Pack manifest
 . Claim format
 . Source and provenance format
-. Entity format
-. Relationship format
+. Entity and relationship format
 . Artifact metadata
 . Licensing metadata
 . Trust and quality metadata
 . Specification compatibility
 . Semantic versioning rules
 . Checksums and artifact integrity
-. Deprecation procedures
-. Package recall procedures
+. Deprecation and recall procedures
 . Multilingual content
 . Embedding metadata
 . Validation requirements
 . Canonical Knowledge Model
 . Registry metadata
-. Build provenance
-. Package signing metadata
+. Build provenance and signing metadata
 
-== Proposed Knowledge Pack Structure
-
-A source repository may follow a structure similar to:
-
-[source,text]
-
-aladin-kb-example/
-├── README.adoc
-├── LICENSE
-├── DATA-LICENSE.adoc
-├── aladin-pack.yml
-├── claims/
-├── entities/
-├── relations/
-├── sources/
-├── translations/
-├── schemas/
-├── tests/
-├── evaluations/
-└── build/
-
-A built release may produce artifacts such as:
-
-[source,text]
-
-example-knowledge-1.0.0.sqlite
-example-knowledge-1.0.0.parquet
-example-knowledge-1.0.0.graph.json
-example-knowledge-1.0.0.embeddings
-example-knowledge-1.0.0.manifest.json
-example-knowledge-1.0.0.provenance.json
-example-knowledge-1.0.0.sha256
-
-The exact required formats are not final and will be defined through the specification process.
-
-== Canonical Knowledge Model
-
-Different specification versions and source formats should be mapped into one internal canonical representation.
-
-[source,text]
-
-Knowledge Pack Spec 1.x ─┐
-Knowledge Pack Spec 2.x ─┼──► Canonical Knowledge Model
-External Compatible Data ─┘
-
-This approach allows gateways and retrieval systems to support older package versions without spreading version-specific logic throughout the entire platform.
-
-== Source Provenance
-
-A knowledge claim should be traceable to its origin.
-
-A conceptual claim record may include:
-
-[source,json]
-
-{
-"id": "docker.volume.persistence.001",
-"type": "factual-claim",
-"statement": "A Docker volume can persist data beyond the lifecycle of an individual container.",
-"language": "en",
-"confidence": 0.98,
-"verification_status": "source-backed",
-"sources": [
-"source.docker.volumes.official"
-],
-"created_at": "2026-07-27T00:00:00Z",
-"last_verified_at": "2026-07-27T00:00:00Z"
-}
-
-A conceptual source record may include:
-
-[source,json]
-
-{
-"id": "source.docker.volumes.official",
-"type": "primary-documentation",
-"title": "Docker storage documentation",
-"publisher": "Docker",
-"retrieved_at": "2026-07-27T00:00:00Z",
-"content_hash": "sha256:example",
-"license_status": "documented",
-"authority_score": 0.95
-}
-
-These examples are illustrative and are not yet normative.
-
-== Trust Model
-
-The specification is expected to support several package states.
+== Trust States
 
 [cols="1,3",options="header"]
 |===
@@ -399,7 +254,7 @@ The specification is expected to support several package states.
 | Passed defined validation, provenance and quality requirements.
 
 | Community
-| Published by an external contributor without official verification.
+| Published externally without official verification.
 
 | Experimental
 | Intended for testing and may contain unstable structures.
@@ -408,120 +263,38 @@ The specification is expected to support several package states.
 | Temporarily blocked due to security, quality, licensing or integrity concerns.
 
 | Deprecated
-| Still available for compatibility but no longer recommended.
+| Available for compatibility but no longer recommended.
 
 | Recalled
 | Must no longer be loaded by compatible production systems.
 |===
 
-A future Trust Score may consider:
-
-* source authority
-* source freshness
-* provenance completeness
-* license clarity
-* validation coverage
-* contradiction handling
-* test coverage
-* review status
-* package history
-* maintainer reputation
-
-The Trust Score model must remain explainable and must not replace human judgment in high-risk domains.
-
 == Security Model
 
-Knowledge Packs may originate from untrusted repositories.
-
-Compatible implementations should therefore assume that package content may be malicious, misleading or corrupted.
-
-The specification will define protections for:
+Knowledge Packs may originate from untrusted repositories. Compatible implementations should account for:
 
 * arbitrary code execution
 * prompt injection inside knowledge content
 * malicious metadata
 * path traversal
-* oversized artifacts
-* decompression bombs
-* invalid schemas
+* oversized artifacts and decompression bombs
 * poisoned embeddings
 * manipulated checksums
 * forged provenance
 * license laundering
 * knowledge poisoning
-* dependency confusion
 * unauthorized package replacement
 
-Knowledge Packs should be declarative by default.
-
-Executable extensions, if introduced in the future, must be isolated from the core data format and require explicit permission.
-
-== Artifact Integrity
-
-Released artifacts should be immutable and identifiable.
-
-A release may include:
-
-* package version
-* specification version
-* build timestamp
-* source commit
-* source tree hash
-* artifact checksum
-* builder identity
-* build environment
-* signature metadata
-* dependency inventory
-* validation report
-
-A compatible runtime should be able to verify an artifact before activating it.
-
-== Hot Reload and Rollback
-
-A new Knowledge Pack version should not immediately replace an active version.
-
-A safe activation process may follow:
-
-[source,text]
-
-Active Package: 1.4.1
-│
-▼
-Download Candidate: 1.4.2
-│
-▼
-Verify Integrity and Signature
-│
-▼
-Validate Package
-│
-▼
-Build Search Index
-│
-▼
-Run Health Checks
-│
-▼
-Atomic Activation
-│
-▼
-Active Package: 1.4.2
-
-If validation fails, the previous version remains active.
+Knowledge Packs are declarative by default. Executable extensions, if ever introduced, must remain outside the core data format and require explicit permission.
 
 == Compatibility and Versioning
 
-The Aladin specification will follow Semantic Versioning.
+The Aladin specification follows Semantic Versioning.
 
 [source,text]
-
+----
 MAJOR.MINOR.PATCH
-
-Example:
-
-[source,text]
-
-1.0.0
+----
 
 [cols="1,3",options="header"]
 |===
@@ -532,91 +305,19 @@ Example:
 | Incompatible changes to required structures or behavior.
 
 | MINOR
-| Backward-compatible additions and new optional capabilities.
+| Backward-compatible additions and optional capabilities.
 
 | PATCH
 | Backward-compatible corrections and clarifications.
 |===
 
-The current working version is:
-
-[source,text]
-
-0.1.0-draft
-
-Specification version "1.0.0" has not yet been released.
-
-A Knowledge Pack manifest is expected to declare compatibility information similar to:
-
-[source,yaml]
-
-specification:
-name: aladin-knowledge-pack
-version: 0.1.0
-compatibility:
-minimum_runtime: 0.1.0
-supported_specification_series:
-- "0.x"
-
-This example is non-normative.
-
-== Embedding Independence
-
-Embeddings are derived search artifacts and must not replace the original knowledge data.
-
-A package containing embeddings should describe:
-
-* embedding model
-* model version
-* vector dimensions
-* normalization method
-* source content hash
-* creation timestamp
-* language coverage
-* chunking strategy
-
-Compatible systems should be able to regenerate embeddings from the original structured content.
-
-== Multilingual Knowledge
-
-Knowledge Packs may contain multiple languages.
-
-The specification should distinguish between:
-
-* original source language
-* translated content
-* machine translations
-* human-reviewed translations
-* locale-specific variations
-* language-independent entities
-* language-specific claims
-
-A translated claim must remain connected to its original source and transformation history.
-
-== Non-Goals
-
-The Aladin Specification does not define:
-
-* one mandatory language model
-* one mandatory vector database
-* one mandatory embedding provider
-* one mandatory graph database
-* one mandatory cloud platform
-* one proprietary AI interface
-* one required programming language
-* autonomous execution of untrusted repository code
-* permanent API servers for every Knowledge Pack
-* a universal guarantee that all included information is correct
-
-Implementations may choose their own infrastructure as long as they follow the public compatibility and validation requirements.
+The current working version is `0.1.0-draft`. Specification version `1.0.0` has not yet been released.
 
 == Open-Core Boundary
 
-This repository defines the public Knowledge Pack standard.
+This repository defines the public Knowledge Pack standard. The public standard must remain usable without requiring a proprietary service.
 
-The specification may be used by open-source and commercial implementations.
-
-The public standard does not require the publication of proprietary components such as:
+The specification does not require publication of proprietary components such as:
 
 * private ranking algorithms
 * commercial orchestration systems
@@ -626,12 +327,10 @@ The public standard does not require the publication of proprietary components s
 * personalization systems
 * enterprise integrations
 
-The public specification must remain usable without requiring access to a proprietary service.
-
 == Planned Repository Structure
 
 [source,text]
-
+----
 aladin-spec/
 ├── README.adoc
 ├── LICENSE
@@ -641,51 +340,11 @@ aladin-spec/
 ├── GOVERNANCE.adoc
 ├── ROADMAP.adoc
 ├── schemas/
-│   ├── manifest.schema.json
-│   ├── claim.schema.json
-│   ├── source.schema.json
-│   ├── entity.schema.json
-│   ├── relation.schema.json
-│   └── artifact.schema.json
 ├── specifications/
-│   ├── knowledge-pack-v1.adoc
-│   ├── source-provenance-v1.adoc
-│   ├── trust-score-v1.adoc
-│   ├── compatibility-v1.adoc
-│   └── artifact-format-v1.adoc
 ├── examples/
-│   ├── minimal-pack/
-│   └── complete-pack/
 ├── decisions/
-│   ├── ADR-0001-artifact-based-architecture.adoc
-│   ├── ADR-0002-canonical-knowledge-model.adoc
-│   ├── ADR-0003-no-runtime-code-in-packs.adoc
-│   └── ADR-0004-open-core-boundary.adoc
 └── tests/
-└── fixtures/
-
-== Planned Schema Files
-
-[source,text]
-
-schemas/
-├── manifest.schema.json
-├── claim.schema.json
-├── source.schema.json
-├── entity.schema.json
-├── relation.schema.json
-└── artifact.schema.json
-
-== Planned Specification Documents
-
-[source,text]
-
-specifications/
-├── knowledge-pack-v1.adoc
-├── source-provenance-v1.adoc
-├── trust-score-v1.adoc
-├── compatibility-v1.adoc
-└── artifact-format-v1.adoc
+----
 
 == Development Roadmap
 
@@ -701,87 +360,55 @@ specifications/
 === Phase 1 — Minimal Specification
 
 * create the first manifest schema
-* define claims and sources
-* define entities and relationships
+* define claims, sources, entities and relationships
 * build a minimal example Knowledge Pack
 * create a standalone validator
 
 === Phase 2 — Reference Implementation
 
 * build two real Knowledge Packs
-* test artifact generation
-* test registry integration
-* test retrieval across multiple packs
+* test artifact generation and registry integration
+* test multi-pack retrieval
 * test rollback and package recall
 
 === Phase 3 — Ecosystem
 
 * public package registry
 * gateway reference implementation
-* SDKs
-* MCP integration
+* SDKs and MCP integration
 * community validation process
-* automated package compatibility tests
+* automated compatibility tests
 
 === Phase 4 — Stable Specification
 
-* complete security review
-* complete licensing review
+* complete security and licensing reviews
 * freeze required schemas
 * publish migration guidance
-* release specification "1.0.0"
+* release specification `1.0.0`
 
 == Current Development Rule
 
 The specification will be designed and tested before large-scale repository generation begins.
 
-This rule exists to prevent:
-
-* incompatible Knowledge Packs
-* duplicated formats
-* unmaintainable repositories
-* premature infrastructure decisions
-* hundreds of packages requiring later migration
-* accidental lock-in to an untested architecture
-
-The validator, gateway and repository factory must follow the specification.
-
-The specification must not be reverse-engineered from an already rigid implementation.
+The validator, gateway and repository factory must follow the specification. The specification must not be reverse-engineered from an already rigid implementation.
 
 == Contributing
 
-Contribution guidelines are being prepared.
+Contribution guidelines are being prepared. Until the first contribution policy is published, architectural proposals may be submitted through GitHub Issues.
 
-Until the first contribution policy is published, architectural proposals may be submitted through GitHub Issues.
-
-When proposing a major change, contributors should explain:
-
-* the problem being solved
-* the proposed data model
-* compatibility implications
-* security implications
-* migration requirements
-* rejected alternatives
-
-Major architectural decisions will be documented as Architecture Decision Records.
+Major architectural decisions are documented as Architecture Decision Records in the `decisions/` directory.
 
 == Security
 
 Security issues should not be published as normal public issues.
 
-A dedicated security policy and private reporting process will be added before the first executable reference implementation is released.
-
-Until then, do not include credentials, personal data, private keys or production secrets in issues, pull requests or example files.
+Until a dedicated private reporting process is available, do not include credentials, personal data, private keys or production secrets in issues, pull requests or examples.
 
 == License
 
 This repository is licensed under the link:LICENSE[Apache License 2.0].
 
-The license applies to the specification and files contained in this repository unless an individual file explicitly states otherwise.
-
 Third-party datasets, documents and knowledge sources used by future Knowledge Packs may remain subject to their original licenses.
-
-The inclusion of third-party metadata does not automatically relicense the original material.
 
 == Project Status
 
@@ -793,16 +420,13 @@ The inclusion of third-party metadata does not automatically relicense the origi
 | Project vision
 | Initial draft
 
-| Architecture
-| Initial draft
+| Artifact-based architecture
+| Accepted
+
+| Canonical Knowledge Model
+| In design
 
 | Manifest schema
-| Not started
-
-| Claim schema
-| Not started
-
-| Source schema
 | Not started
 
 | Validator
@@ -818,15 +442,19 @@ The inclusion of third-party metadata does not automatically relicense the origi
 == Final Principle
 
 [quote]
-
----
-
+____
 Aladin should not merely retrieve text.
 
 It should reveal where knowledge came from, how trustworthy it is, which version was used and whether the result can be independently verified.
-
----
+____
 
 '''
 
-Aladin Spec is the foundation for an open ecosystem of portable, source-aware and verifiable AI knowledge.
+[.text-center]
+--
+*ALADIN*
+
+*Portable knowledge. Verifiable sources. Trusted intelligence.*
+
+_The open knowledge layer for trustworthy AI systems._
+--
