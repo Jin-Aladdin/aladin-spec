@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.1.0/schemas/artifact.schema.json",
+  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.2.0/schemas/artifact.schema.json",
   "title": "Aladdin Knowledge Pack Artifact Provenance",
   "description": "Normative schema for the provenance document that accompanies a published Aladdin Knowledge Pack artifact. It records what was built, from which source, by which tooling, with which checksums and against which validation and evaluation results, so a consumer can verify an artifact independently instead of trusting the publisher. This document describes an artifact; it does not certify that the knowledge inside it is correct.",
   "type": "object",

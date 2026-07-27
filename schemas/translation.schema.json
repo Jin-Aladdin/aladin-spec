@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.1.0/schemas/translation.schema.json",
+  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.2.0/schemas/translation.schema.json",
   "title": "Aladdin Knowledge Translation",
   "description": "Normative schema for a translation record in an Aladdin Knowledge Pack. A translation connects translated content to the original object it came from, together with the method, the responsible translator or model and the review status. A language variant is never independent knowledge: it always points back at its original, so a consumer can tell a human translation from an unreviewed machine translation.",
   "type": "object",

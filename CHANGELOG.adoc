@@ -10,7 +10,25 @@ The specification follows Semantic Versioning. While the series is `0.x`,
 breaking changes are possible between minor versions and every one of them is
 announced in this file.
 
-== Unreleased
+== 0.2.0, 2026-07-27
+
+Adds the sentinel, verified backups and the Knowledge Pack bootstrap, and
+carries the fix that makes a generated pack repository actually pass its own
+pipeline.
+
+Schema identifiers move to `v0.2.0`, as ADR-0006 requires: an identifier names
+one immutable document at one specification version, so it moves when the
+version does. The `0.1.0` identifiers remain resolvable under their own tag.
+
+No schema content changed. This is an addition, not a redefinition: a pack
+valid under `0.1.0` stays valid.
+
+=== Upgrading
+
+Repositories generated from the template before this release pin `ref: v0.1.0`
+and will fail once they use the update engine, because `--schemas` does not
+exist there. Change the pinned ref in `.github/workflows/*.yml` to `v0.2.0`.
+
 
 === Added
 

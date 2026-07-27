@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.1.0/schemas/update-policy.schema.json",
+  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.2.0/schemas/update-policy.schema.json",
   "title": "Aladdin Knowledge Pack Update Policy",
   "description": "Normative schema for the automation policy of an Aladdin Knowledge Pack repository. The policy declares which sources may be retrieved, by which adapter, under which limits, with which trust and licensing status, and how far automation is allowed to act on the result. A repository without a valid update policy has no automated maintenance.",
   "type": "object",

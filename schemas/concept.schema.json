@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.1.0/schemas/concept.schema.json",
+  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.2.0/schemas/concept.schema.json",
   "title": "Aladdin Knowledge Concept",
   "description": "Normative schema for a concept record in an Aladdin Knowledge Pack. A concept provides normalized topic and semantic classification so that claims, entities and relations from different packs can be grouped and retrieved consistently. A concept is a classification handle, not an assertion about the world, and it is deliberately distinct from an entity: an entity denotes a specific object, a concept denotes a category of meaning.",
   "type": "object",

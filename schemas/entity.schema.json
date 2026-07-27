@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.1.0/schemas/entity.schema.json",
+  "$id": "https://raw.githubusercontent.com/Jin-Aladdin/aladdin-spec/v0.2.0/schemas/entity.schema.json",
   "title": "Aladdin Knowledge Entity",
   "description": "Normative schema for a canonical entity record in an Aladdin Knowledge Pack. An entity is a stable, reusable object that claims, relations, concepts and evidence can reference. An entity record establishes identity and provenance. It does not assert that statements about the entity are true.",
   "type": "object",
