@@ -201,3 +201,41 @@ def test_this_repository_can_be_bundled(tmp_path):
     result = backup_bundle.create_bundle(tmp_path / "self.bundle", repository=REPOSITORY_ROOT)
     assert result.commit_count > 0
     assert result.ref_count > 0
+
+
+def test_backup_runs_on_every_release_tag():
+    """A release is a point someone may need to return to.
+
+    A restore test found the newest backup already missing 31 commits and six
+    of seven tags. Waiting for the next scheduled run means a release can
+    exist without a backup that contains it.
+    """
+    import yaml
+
+    workflow = yaml.safe_load(
+        (REPOSITORY_ROOT / ".github" / "workflows" / "backup-mirror.yml").read_text(
+            encoding="utf-8"
+        )
+    )
+    triggers = workflow.get(True) or workflow.get("on")
+    assert "push" in triggers, "a release must trigger a backup"
+    assert "v*" in triggers["push"]["tags"]
+
+
+def test_backup_schedule_is_not_monthly():
+    """Backup interval has to match how fast the thing changes."""
+    import yaml
+
+    workflow = yaml.safe_load(
+        (REPOSITORY_ROOT / ".github" / "workflows" / "backup-mirror.yml").read_text(
+            encoding="utf-8"
+        )
+    )
+    triggers = workflow.get(True) or workflow.get("on")
+    for entry in triggers["schedule"]:
+        fields = entry["cron"].split()
+        day_of_month = fields[2]
+        assert day_of_month == "*", (
+            f"cron {entry['cron']!r} runs on a fixed day of month, which is monthly; "
+            "an active repository outruns that"
+        )

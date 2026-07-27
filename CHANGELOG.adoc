@@ -10,6 +10,24 @@ The specification follows Semantic Versioning. While the series is `0.x`,
 breaking changes are possible between minor versions and every one of them is
 announced in this file.
 
+== Unreleased
+
+=== Fixed
+
+* Backups ran monthly, which an active repository outruns. A restore test
+  from the real bundle found the newest backup already missing 31 commits,
+  six of seven tags and four core files, all created the same day. Backups now
+  run weekly and on every release tag, so a released version always has a
+  backup that contains it.
+
+=== Verified
+
+* A full restore was performed from the backup bundle alone, without GitHub
+  and without the original working copy: 59 commits, the tag, 282 files, and
+  all four gates passing inside the restored repository including its test
+  suite. `SUCCESSION.adoc` now states this as a tested result rather than an
+  assumption.
+
 == 0.3.0, 2026-07-27
 
 Automatic registration of Knowledge Packs, and the documentation needed to
