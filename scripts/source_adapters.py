@@ -643,6 +643,8 @@ def fetch(
             f"unknown adapter {name!r}; adapters must come from the fixed registry",
             source_id=source.get("id", "<unknown>"),
         )
-    if adapter is fetch_json_api:
+    # Dispatch on the declared name rather than on function identity, so the
+    # registry stays the single source of truth even when an entry is replaced.
+    if name == "json-api":
         return adapter(source, repository_root=repository_root, now=now, state=state, **options)
     return adapter(source, repository_root=repository_root, now=now)

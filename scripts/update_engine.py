@@ -780,8 +780,12 @@ def run_update(
             )
         )
 
-    if result.outcome == "failed":
-        state["counters"]["failures"] = state.get("counters", {}).get("failures", 0) + 1
+    # A rate limit is not a failure of the pack and not a no-change result: it
+    # is a deferred run. Both terminate the run before any candidate exists,
+    # and both must survive the no-change branch below.
+    if result.outcome in {"failed", "rate-limited"}:
+        if result.outcome == "failed":
+            state["counters"]["failures"] = state.get("counters", {}).get("failures", 0) + 1
         result.finished_at = now
         _finish(pack_dir, state, result, now, apply_state)
         return result
