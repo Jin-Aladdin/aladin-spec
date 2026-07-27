@@ -10,7 +10,10 @@ The specification follows Semantic Versioning. While the series is `0.x`,
 breaking changes are possible between minor versions and every one of them is
 announced in this file.
 
-== Unreleased
+== 0.2.3, 2026-07-27
+
+A patch so a pack repository with ordinary repository files passes its own
+security gate. No schema changed.
 
 === Fixed
 
