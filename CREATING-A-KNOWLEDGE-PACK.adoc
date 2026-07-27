@@ -1,0 +1,284 @@
+= Creating a Knowledge Pack
+Jin-Aladdin
+:description: How to create, fill and activate a new Aladdin Knowledge Pack repository.
+:toc: macro
+:toc-title: Contents
+:toclevels: 3
+:sectanchors:
+:sectlinks:
+
+[IMPORTANT]
+====
+A new knowledge repository must never be created without an automation
+foundation (ADR-0005). This guide uses the controlled template, so the
+foundation is there before any content is.
+====
+
+toc::[]
+
+== Before You Start
+
+You need Python and the development dependencies of this repository:
+
+[source,text]
+----
+python -m pip install -r requirements-dev.txt
+----
+
+Decide three things:
+
+[cols="1,2,1",options="header"]
+|===
+| Value
+| Meaning
+| Example
+
+| Pack id
+| Lowercase, hyphenated, stable forever. It appears in the manifest, the
+  policy, the artifact names and the registry.
+| `aladdin-kb-docker`
+
+| Domain
+| The subject area, used for discovery.
+| `docker`
+
+| Namespace
+| Prefix of every record identifier. Derived from the pack id unless you
+  override it.
+| `docker`
+|===
+
+The pack id and the namespace are effectively permanent. Changing either later
+means rewriting every identifier in the pack and breaking anything that
+referenced them.
+
+== Step 1: Generate
+
+[source,text]
+----
+python scripts/new_knowledge_pack.py \
+  --id aladdin-kb-docker \
+  --name "Aladdin Docker Knowledge Pack" \
+  --description "Structured, source-backed knowledge about Docker tooling." \
+  --domain docker \
+  --out ../aladdin-kb-docker
+----
+
+The generator copies the template, substitutes the identity throughout, and
+then runs the same validation and security gates a real repository runs. If the
+result would not pass, it fails instead of handing you a broken starting point.
+
+What you get is deliberately inert:
+
+* `automation.enabled: false`
+* `automation.level: detect`
+* the example source disabled, risk class `high`, licensing `unclear`
+* `security.prompt_injection_reviewed: false`
+
+Every one of those is a decision someone has to make on purpose, and each shows
+up in a diff when it changes.
+
+== Step 2: Replace the Placeholder Records
+
+The generated pack contains one placeholder claim, source and evidence record
+so that it validates. They are not content.
+
+Replace them with real records in `claims/`, `sources/` and `evidence/`. Each
+file is JSON Lines: exactly one JSON object per line.
+
+Three rules that the schemas enforce and that are worth understanding rather
+than discovering:
+
+Source and evidence are different things:: A source identifies an origin. An
+evidence record identifies the exact location inside that origin which supports
+a specific claim. One broad document reference is not proof for every claim
+that cites it.
+
+Confidence is not verification:: `confidence` is an estimate. `status` and
+`review` describe what was actually checked. A confidence of `1.0` on an
+unreviewed claim asserts certainty nobody established.
+
+A claim must say only what its evidence supports:: If the source establishes
+that an API reports something, the claim says that. It does not say the
+something is universally true.
+
+Validate as you go:
+
+[source,text]
+----
+python scripts/validate.py --pack ../aladdin-kb-docker
+----
+
+== Step 3: Declare the Sources
+
+Edit `automation/update-policy.yml`. Each source needs an adapter, an
+allowlist, a licensing status, a risk class and limits.
+
+Before enabling a source, document its licensing. Automatic retrieval does not
+imply permitted reuse. When licensing is unclear, the schema caps the source at
+`detect` and it will never publish automatically.
+
+Two adapters are implemented today:
+
+[cols="1,3",options="header"]
+|===
+| Adapter
+| Use
+
+| `static-file`
+| A fixture inside the repository. Deterministic and offline. The right choice
+  while you are still shaping the pack.
+
+| `json-api`
+| One JSON document over HTTPS. Screened, size-limited, redirect-checked. See
+  `examples/automated-pack` for a working configuration against a real
+  endpoint.
+|===
+
+The other seven adapters are declared and refuse to run. They fail closed
+rather than degrading into something weaker.
+
+=== Change Detection
+
+If the response carries fields your mapping does not read, such as counters or
+server timestamps, use `change_detection.method: mapped-values`. Hashing the
+whole body would report a change on every run and open a pull request every
+time. This is not hypothetical: it is what the reference example does, and it
+was found by running it.
+
+== Step 4: Maintainers
+
+Fill in `MAINTAINERS.adoc` with at least two people or roles, and a security
+contact.
+
+One maintainer is not a maintainer set; it is a single point of failure. The
+same applies to two accounts belonging to the same person on the same machine:
+it satisfies the form and not the purpose.
+
+Record secret *names* and their rotation owner. Never a value.
+
+== Step 5: Create the Repository and Push
+
+[source,text]
+----
+cd ../aladdin-kb-docker
+git init -b main
+git add -A
+git commit -m "feat: initial knowledge pack"
+gh repo create <owner>/aladdin-kb-docker --public --source . --push
+----
+
+Prefer an organization over a personal account. A repository bound to one
+person inherits the succession problem the architecture exists to reduce.
+
+== Step 6: Let the Gates Run
+
+The validation workflow runs on push. Read it before doing anything else.
+
+It checks out this specification repository at a pinned tag and runs its
+validator and security gate, so a pack repository does not carry its own copy
+of the rules.
+
+Do not proceed while it is red.
+
+== Step 7: Enable Automation, One Step at a Time
+
+Only now, and only deliberately:
+
+. Set `sources[].enabled: true` for a source whose licensing you have
+  documented.
+. Set `automation.enabled: true`, still at level `detect`. Watch a scheduled
+  run. Nothing is modified at this level.
+. Raise to `propose`. Candidates now arrive as pull requests. Read several
+  before trusting them.
+. Raise to `release` only after the evaluation suite means something for this
+  pack.
+
+Each step is reversible. Skipping steps is how an unreviewed candidate becomes
+a published version.
+
+== Step 8: Register It With the Sentinel
+
+Add the repository to `inventory.yml` in the sentinel repository:
+
+[source,yaml]
+----
+- repository: <owner>/aladdin-kb-docker
+  role: knowledge-pack
+  thresholds:
+    update_max_age_days: 21
+    release_max_age_days: 180
+  recovery:
+    enabled: false
+----
+
+A repository cannot report its own silence. If its scheduled workflows are
+disabled after a quiet period, the heartbeat that would have noticed is
+disabled with them.
+
+Set a threshold to `null` to decline a check that does not apply to this
+repository. Omitting it inherits the inventory default instead.
+
+== What the Specification Repository Provides
+
+A pack repository holds data and policy. The logic lives here and is pinned:
+
+[cols="1,2",options="header"]
+|===
+| Component
+| Purpose
+
+| `scripts/validate.py`
+| Schemas, manifests, records, identifiers, entry points, cross references,
+  update policies.
+
+| `scripts/security_scan.py`
+| No executable content, no undeclared binaries, no symbolic links, no
+  committed credentials.
+
+| `scripts/update_engine.py`
+| Retrieval, change detection, candidate generation, gates, quarantine,
+  versioning.
+
+| `scripts/build_artifact.py`
+| Reproducible artifacts with checksums and provenance.
+
+| `scripts/automation_health.py`
+| Heartbeat and staleness reporting.
+
+| `schemas/`
+| The canonical object schemas and the update policy schema.
+|===
+
+One implementation of the gates, not a copy per repository. `RECOVERY.adoc` in
+the generated pack documents how to vendor them if this repository ever becomes
+unreachable.
+
+== Common Mistakes
+
+[cols="1,2",options="header"]
+|===
+| Mistake
+| Why it hurts
+
+| Enabling automation before reading a run
+| The first thing automation does becomes the thing nobody reviewed.
+
+| A statement containing the retrieval time
+| It differs on every run, so every run produces a commit and change detection
+  becomes meaningless.
+
+| Confidence raised to make a gate pass
+| The gate existed for a reason, and the number now asserts something nobody
+  established.
+
+| An SPDX license chosen because a field required one
+| A false statement about someone else's rights. Use `LicenseRef-` and document
+  the actual terms.
+
+| Renaming the pack id or namespace later
+| Every identifier changes and every external reference breaks.
+
+| A single maintainer
+| Everything works until that person stops.
+|===
