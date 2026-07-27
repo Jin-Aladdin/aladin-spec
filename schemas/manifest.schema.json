@@ -1,0 +1,440 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jin-Aladdin/aladin-spec/blob/main/schemas/manifest.schema.json",
+  "title": "Aladin Knowledge Pack Manifest",
+  "description": "Normative manifest schema for an Aladin Knowledge Pack.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "pack",
+    "specification",
+    "content",
+    "languages",
+    "licenses",
+    "maintainers",
+    "lifecycle",
+    "security"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1.0",
+      "description": "Version of this manifest schema."
+    },
+    "pack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "version",
+        "description"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "minLength": 3,
+          "maxLength": 100,
+          "description": "Stable lowercase package identifier using hyphens."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 120
+        },
+        "version": {
+          "$ref": "#/$defs/semanticVersion"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 500
+        },
+        "homepage": {
+          "type": "string",
+          "format": "uri"
+        },
+        "repository": {
+          "type": "string",
+          "format": "uri"
+        },
+        "keywords": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "minLength": 2,
+            "maxLength": 50
+          },
+          "uniqueItems": true,
+          "minItems": 1,
+          "maxItems": 30
+        }
+      }
+    },
+    "specification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "compatibility"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "const": "aladin-knowledge-pack"
+        },
+        "version": {
+          "$ref": "#/$defs/semanticVersion"
+        },
+        "compatibility": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "minimum_runtime",
+            "supported_specification_series"
+          ],
+          "properties": {
+            "minimum_runtime": {
+              "$ref": "#/$defs/semanticVersion"
+            },
+            "supported_specification_series": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^(0|[1-9]\\d*)\\.x$"
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          }
+        }
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domains",
+        "content_types"
+      ],
+      "properties": {
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "minLength": 2,
+            "maxLength": 80
+          },
+          "minItems": 1,
+          "maxItems": 50,
+          "uniqueItems": true
+        },
+        "content_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "claims",
+              "sources",
+              "evidence",
+              "entities",
+              "relations",
+              "concepts",
+              "translations",
+              "conflicts",
+              "evaluations",
+              "policies"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "entry_points": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relativePath"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "languages": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary",
+        "available"
+      ],
+      "properties": {
+        "primary": {
+          "$ref": "#/$defs/languageTag"
+        },
+        "available": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/languageTag"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      }
+    },
+    "licenses": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "content"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/licenseExpression"
+        },
+        "content": {
+          "$ref": "#/$defs/licenseExpression"
+        },
+        "third_party_notice": {
+          "$ref": "#/$defs/relativePath"
+        }
+      }
+    },
+    "maintainers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "github": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "maintainer",
+              "reviewer",
+              "security-contact"
+            ]
+          }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "github"
+            ]
+          },
+          {
+            "required": [
+              "email"
+            ]
+          }
+        ]
+      }
+    },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "experimental",
+            "community",
+            "verified",
+            "official",
+            "deprecated",
+            "quarantined",
+            "recalled"
+          ]
+        },
+        "created_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "deprecated_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "recalled_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "replacement": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "deprecated"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "deprecated_at"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "recalled"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "required": [
+              "recalled_at"
+            ]
+          }
+        }
+      ]
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "declarative_only",
+        "runtime_code",
+        "prompt_injection_reviewed"
+      ],
+      "properties": {
+        "declarative_only": {
+          "type": "boolean",
+          "const": true
+        },
+        "runtime_code": {
+          "type": "boolean",
+          "const": false
+        },
+        "prompt_injection_reviewed": {
+          "type": "boolean"
+        },
+        "security_policy": {
+          "$ref": "#/$defs/relativePath"
+        }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "builder": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 200
+        },
+        "reproducible": {
+          "type": "boolean"
+        },
+        "generated_at": {
+          "$ref": "#/$defs/dateTime"
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "media_type",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "$ref": "#/$defs/relativePath"
+          },
+          "media_type": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 120
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "uniqueItems": true
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Namespaced extension data. Keys should use reverse-DNS notation.",
+      "propertyNames": {
+        "pattern": "^[a-z0-9]+(?:\\.[a-z0-9-]+)+$"
+      },
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "semanticVersion": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "dateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "languageTag": {
+      "type": "string",
+      "pattern": "^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
+    },
+    "licenseExpression": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 200,
+      "description": "SPDX license identifier or SPDX license expression."
+    }
+  }
+}
