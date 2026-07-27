@@ -440,11 +440,47 @@ def validate_pack(pack_dir: Path, schemas: dict[str, dict], root: Path) -> list[
             )
 
     findings.extend(_check_references(records, pack_dir, root))
+    findings.extend(_check_conflicts(records, pack_dir, root))
 
     policy_path = pack_dir / AUTOMATION_DIRECTORY / POLICY_FILENAME
     if policy_path.is_file():
         findings.extend(validate_policy(policy_path, schemas, root, manifest=manifest))
 
+    return findings
+
+
+def _check_conflicts(
+    records: dict[str, list[tuple[int, dict]]], pack_dir: Path, root: Path
+) -> list[Finding]:
+    """A resolved conflict must prefer one of its own subjects.
+
+    JSON Schema can require the field and constrain its shape, but it cannot
+    express that the value has to appear in a sibling array.
+    """
+    rows = records.get("conflicts")
+    if not rows:
+        return []
+
+    rel = _relative(pack_dir / "conflicts" / "conflicts.jsonl", root)
+    findings: list[Finding] = []
+    for line_number, record in rows:
+        resolution = record.get("resolution")
+        if not isinstance(resolution, dict):
+            continue
+        preferred = resolution.get("preferred")
+        if not isinstance(preferred, str):
+            continue
+        subjects = record.get("subjects")
+        subjects = subjects if isinstance(subjects, list) else []
+        if preferred not in subjects:
+            findings.append(
+                Finding(
+                    rel,
+                    f"resolution prefers {preferred}, which is not one of the conflict subjects",
+                    line=line_number,
+                    record_id=record.get("id") if isinstance(record.get("id"), str) else None,
+                )
+            )
     return findings
 
 

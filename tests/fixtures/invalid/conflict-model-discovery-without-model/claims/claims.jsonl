@@ -1,0 +1,2 @@
+{"id":"claim:fixture.disputed.a.001","kind":"factual","statement":"The documented default timeout is 30 seconds.","language":"en","status":"disputed","confidence":0.6,"source_ids":["source:fixture.doc"],"conflict_ids":["conflict:fixture.timeout.001"],"created_at":"2026-07-27T00:00:00Z"}
+{"id":"claim:fixture.disputed.b.001","kind":"factual","statement":"The documented default timeout is 60 seconds.","language":"en","status":"disputed","confidence":0.6,"source_ids":["source:fixture.doc"],"conflict_ids":["conflict:fixture.timeout.001"],"created_at":"2026-07-27T00:00:00Z"}

@@ -1,0 +1,1 @@
+{"id":"evidence:fixture.doc.definition.001","source_id":"source:fixture.doc","claim_ids":["claim:fixture.disputed.a.001","claim:fixture.disputed.b.001"],"locator":{"type":"section","section":"Definitions"},"captured_at":"2026-07-27T00:00:00Z","verification":{"status":"located","method":"manual"},"status":"active"}

@@ -1,0 +1,474 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jin-Aladdin/aladdin-spec/blob/main/schemas/conflict.schema.json",
+  "title": "Aladdin Knowledge Conflict",
+  "description": "Normative schema for a conflict record in an Aladdin Knowledge Pack. A conflict preserves a meaningful disagreement instead of silently deleting one side. Recording a conflict is not a verdict: an unresolved conflict is a legitimate and permanent state, and a resolved conflict documents who decided and why.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "type",
+    "subjects",
+    "discovery",
+    "resolution",
+    "status",
+    "created_at"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^conflict:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "minLength": 12,
+      "maxLength": 240,
+      "description": "Stable namespaced identifier beginning with conflict:."
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "direct-contradiction",
+        "version-difference",
+        "jurisdiction-difference",
+        "temporal-difference",
+        "language-ambiguity",
+        "source-disagreement",
+        "context-dependent",
+        "scope-mismatch",
+        "unit-mismatch",
+        "granularity-mismatch",
+        "other"
+      ],
+      "description": "Nature of the disagreement. Several of these are not errors: a jurisdiction or version difference can mean both sides are correct in their own scope."
+    },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/subjectId"
+      },
+      "uniqueItems": true,
+      "minItems": 2,
+      "maxItems": 100,
+      "description": "The objects that disagree. A conflict needs at least two sides."
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 2000,
+      "description": "What the disagreement is about, stated without taking a side."
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "informational",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "description": "How much the disagreement matters for a consumer. Severity is about impact, not about which side is right."
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Where the disagreement applies. A conflict that only exists in one jurisdiction or one version range must say so.",
+      "properties": {
+        "jurisdictions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "uniqueItems": true,
+          "maxItems": 50
+        },
+        "version_range": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "valid_from": {
+          "$ref": "#/$defs/dateOrDateTime"
+        },
+        "valid_until": {
+          "$ref": "#/$defs/dateOrDateTime"
+        },
+        "context": {
+          "type": "string",
+          "maxLength": 500
+        }
+      }
+    },
+    "discovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "detected_at"
+      ],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "rule-based",
+            "structural-comparison",
+            "model-assisted",
+            "user-report",
+            "external-report"
+          ]
+        },
+        "detected_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "detector": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 200,
+          "description": "Person, tool or process that found the disagreement."
+        },
+        "model": {
+          "$ref": "#/$defs/modelIdentity",
+          "description": "Required for model-assisted discovery. A model may surface a candidate conflict; it does not establish that one exists."
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      }
+    },
+    "resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state"
+      ],
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "unresolved",
+            "under-review",
+            "resolved",
+            "contextual",
+            "not-resolvable"
+          ],
+          "description": "unresolved and not-resolvable are legitimate permanent states. contextual means both sides hold in their own scope."
+        },
+        "preferred": {
+          "$ref": "#/$defs/subjectId",
+          "description": "The side that a consumer should prefer. Must be one of the subjects. Only meaningful for a resolved conflict."
+        },
+        "decided_by": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 200,
+          "description": "Who decided. A resolution must be attributable to a person, body or documented process."
+        },
+        "decided_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 4000,
+          "description": "Why this resolution was chosen. A resolution without a rationale is not auditable."
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "human-review",
+            "source-authority",
+            "recency",
+            "scope-separation",
+            "external-decision"
+          ],
+          "description": "How the decision was reached. A language model is deliberately absent: model output cannot resolve a conflict on its own."
+        }
+      }
+    },
+    "source_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sourceId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 100
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidenceId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 500
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "superseded",
+        "withdrawn"
+      ],
+      "description": "Lifecycle of the conflict record itself, independent from whether the disagreement was resolved."
+    },
+    "superseded_by": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/conflictId"
+      },
+      "uniqueItems": true,
+      "minItems": 1,
+      "maxItems": 100
+    },
+    "withdrawal_reason": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 2000,
+      "description": "Why this record no longer describes a real disagreement, for example because it rested on a misreading."
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 3000
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Namespaced extension data using reverse-DNS keys.",
+      "propertyNames": {
+        "pattern": "^[a-z0-9]+(?:\\.[a-z0-9-]+)+$"
+      },
+      "additionalProperties": true
+    }
+  },
+  "allOf": [
+    {
+      "description": "A resolved conflict must be attributable and explained.",
+      "if": {
+        "properties": {
+          "resolution": {
+            "properties": {
+              "state": {
+                "const": "resolved"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          }
+        },
+        "required": [
+          "resolution"
+        ]
+      },
+      "then": {
+        "properties": {
+          "resolution": {
+            "required": [
+              "preferred",
+              "decided_by",
+              "decided_at",
+              "rationale",
+              "method"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "description": "A contextual outcome must state the scope that separates the sides.",
+      "if": {
+        "properties": {
+          "resolution": {
+            "properties": {
+              "state": {
+                "const": "contextual"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          }
+        },
+        "required": [
+          "resolution"
+        ]
+      },
+      "then": {
+        "required": [
+          "scope"
+        ],
+        "properties": {
+          "resolution": {
+            "required": [
+              "rationale"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "description": "An unresolvable conflict must say why it cannot be resolved.",
+      "if": {
+        "properties": {
+          "resolution": {
+            "properties": {
+              "state": {
+                "const": "not-resolvable"
+              }
+            },
+            "required": [
+              "state"
+            ]
+          }
+        },
+        "required": [
+          "resolution"
+        ]
+      },
+      "then": {
+        "properties": {
+          "resolution": {
+            "required": [
+              "rationale"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "description": "Model-assisted discovery must remain attributable to a model.",
+      "if": {
+        "properties": {
+          "discovery": {
+            "properties": {
+              "method": {
+                "const": "model-assisted"
+              }
+            },
+            "required": [
+              "method"
+            ]
+          }
+        },
+        "required": [
+          "discovery"
+        ]
+      },
+      "then": {
+        "properties": {
+          "discovery": {
+            "required": [
+              "model"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "description": "A superseded conflict record must name its replacement.",
+      "if": {
+        "properties": {
+          "status": {
+            "const": "superseded"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "superseded_by"
+        ]
+      }
+    },
+    {
+      "description": "A withdrawn conflict record must say why.",
+      "if": {
+        "properties": {
+          "status": {
+            "const": "withdrawn"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "withdrawal_reason"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "subjectId": {
+      "type": "string",
+      "pattern": "^(?:claim|entity|concept|relation|source|evidence):[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "conflictId": {
+      "type": "string",
+      "pattern": "^conflict:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "sourceId": {
+      "type": "string",
+      "pattern": "^source:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "evidenceId": {
+      "type": "string",
+      "pattern": "^evidence:[a-z0-9]+(?:[._-][a-z0-9]+)*$",
+      "maxLength": 240
+    },
+    "modelIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "version"
+      ],
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "transformation_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      }
+    },
+    "dateOrDateTime": {
+      "oneOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "string",
+          "format": "date-time"
+        }
+      ]
+    }
+  }
+}

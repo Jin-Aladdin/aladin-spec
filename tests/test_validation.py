@@ -74,8 +74,12 @@ def test_repository_validates_cleanly():
     assert findings == [], messages(findings)
 
 
-def test_valid_fixture_pack(schemas):
-    findings = validate_pack(FIXTURES / "valid" / "minimal-pack", schemas, REPOSITORY_ROOT)
+@pytest.mark.parametrize(
+    "name",
+    sorted(path.name for path in (FIXTURES / "valid").iterdir() if path.is_dir()),
+)
+def test_valid_fixture_pack(name, schemas):
+    findings = validate_pack(FIXTURES / "valid" / name, schemas, REPOSITORY_ROOT)
     assert findings == [], messages(findings)
 
 
@@ -100,6 +104,11 @@ INVALID_CASES = [
     ("relation-model-derivation-without-model", "'model' is a required property"),
     ("concept-merged-without-target", "'merged_into' is a required property"),
     ("concept-imported-without-scheme", "'scheme' is a required property"),
+    ("conflict-resolved-without-rationale", "'decided_by' is a required property"),
+    ("conflict-prefers-non-subject", "is not one of the conflict subjects"),
+    ("conflict-single-subject", "is too short"),
+    ("conflict-contextual-without-scope", "'scope' is a required property"),
+    ("conflict-model-discovery-without-model", "'model' is a required property"),
 ]
 
 
